@@ -4,6 +4,7 @@ import pandas as pd
 from psychopy import core, visual, event, sound
 import os, re, random
 import pickle
+import numpy as np
 
 
 ##########
@@ -328,7 +329,7 @@ def doNounTrainingTrial(noun, wrongNoun, engNoun, nTrial):
     return response, correct, buttonTexts[0], buttonTexts[1]
 
 
-def doNounTraining(sujet):
+def doNounTraining(sujet, repeat=0):
 
     # ntrainingDf will be updated by the function, so must be global
     global ntrainingDf
@@ -362,7 +363,8 @@ def doNounTraining(sujet):
                 'buttonA':buttonA,
                 'buttonB':buttonB,
                 'response':response,
-                'correct':correct
+                'correct':correct,
+                'iteration':repeat
             }
             trial = pd.DataFrame([dico])
             ntrainingDf = ntrainingDf.append(trial)
@@ -447,35 +449,39 @@ def doNounTesting(sujet):
     global ntestingDf
     loop = 0
     num_correct = 0
-    while loop < 2: # Two testing blocks
-        random.shuffle(nouns)
-        i = 0
-        while i < 6: # Show each noun once in each testing block
-            engNoun = nouns[i]
-            nounWord = noncedict[engNoun]
-            otherWord = random.choice(nouns)
-            otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
-            if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
-        # do the trial and recover button content
-                response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, i)
-                num_correct += correct
-                print num_correct
-            else: 
-                pass
-            i += 1
 
-            dico = {
-                'suj':sujet,
-                'trial':i,
-                'correct_noun':nounWord,
-                'buttonA':buttonA,
-                'buttonB':buttonB,
-                'response':response,
-                'correct':correct
-            }
-            trial = pd.DataFrame([dico])
-            ntestingDf = ntestingDf.append(trial)
-        loop += 1
+    numberBlocks = 2
+    testNouns = []
+    for block in range(numberBlocks):
+        blockNouns = list(np.copy(nouns))
+        random.shuffle(blockNouns)
+        testNouns.append(blockNouns)
+
+    testNouns = testNouns[0] + testNouns[1] # don't do this normally
+    
+    for n,nounWord in enumerate(testNouns): # Show each noun once in each testing block
+        engNoun = noncedict[nounWord]
+        otherWord = random.choice(nouns)
+        otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
+        if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
+    # do the trial and recover button content
+            response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, n)
+            num_correct += correct
+            print num_correct
+        else: 
+            continue
+
+        dico = {
+            'suj':sujet,
+            'trial':n,
+            'correct_noun':nounWord,
+            'buttonA':buttonA,
+            'buttonB':buttonB,
+            'response':response,
+            'correct':correct
+        }
+        trial = pd.DataFrame([dico])
+        ntestingDf = ntestingDf.append(trial)
     print num_correct
     checkLearning(num_correct, sujet) # Check to see if participant got at least 75% correct
     return
@@ -492,7 +498,7 @@ def checkLearning(numCorrect, suj):
     elif numCorrect < 9: # If they got less than 75% correct, repeat training
         instructions(tryagain)
         suj = suj+'-2'
-        doNounTraining(suj)
+        doNounTraining(suj, repeat=1)
         instructions(teststatement)
         doNounTesting(suj)
     else:
@@ -719,7 +725,8 @@ ntrainingCols = [
     'buttonA',
     'buttonB',
     'response',
-    'correct'
+    'correct',
+    'iteration'
 ]
 ntrainingDf = pd.DataFrame(columns=ntrainingCols)
 
@@ -783,8 +790,8 @@ thanksfornothing = u'''Thank you for participating, please let the experimenter 
 
 instructions(hello)
 
-doNounTraining(sujet)
-ntrainingDf.to_csv(nounTrainingFileName, index=None)
+# doNounTraining(sujet)
+# ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
 instructions(between_nouns)
 
