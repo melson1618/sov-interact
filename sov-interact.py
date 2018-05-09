@@ -459,6 +459,7 @@ def doNounTesting(sujet):
         # do the trial and recover button content
                 response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, i)
                 num_correct += correct
+                print num_correct
             else: 
                 pass
             i += 1
@@ -476,20 +477,24 @@ def doNounTesting(sujet):
             ntestingDf = ntestingDf.append(trial)
         loop += 1
     print num_correct
-    checkLearning(num_correct) # Check to see if participant got at least 75% correct
+    checkLearning(num_correct, sujet) # Check to see if participant got at least 75% correct
     return
 
-def checkLearning(numCorrect):
+def checkLearning(numCorrect, suj):
     '''Check how many of the noun testing trials participant got correct, if it is less than 75% (9) repeat nounTraining, 
     unless they've already been through it twice'''
 
-    if '-2' in sujet: # Check to see if they're already done it twice
-        print 'Thank you for participating'
+    if '-2' in suj: # Check to see if they're already done it twice
+        if numCorrect < 9:
+            instructions(thanksfornothing)
+        else:
+            pass
     elif numCorrect < 9: # If they got less than 75% correct, repeat training
         instructions(tryagain)
-        doNounTraining(sujet+'-2')
+        suj = suj+'-2'
+        doNounTraining(suj)
         instructions(teststatement)
-        doNounTesting(sujet+'-2')
+        doNounTesting(suj)
     else:
         pass
     return
@@ -772,6 +777,7 @@ sentences = u'''Now that you've learned the words, let's try some sentences'''
 
 sentence_test = u'''Type a sentence to describe the image'''
 
+thanksfornothing = u'''Thank you for participating, please let the experimenter know that you have finished'''
 ############
 # RUN THE EXPERIMENT
 
