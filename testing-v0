@@ -1,0 +1,159 @@
+# -*- coding: utf-8 -*-
+
+from psychopy import core, gui, misc, data, visual, event, sound
+import pandas as pd
+import numpy as np
+import codecs # for utf-8 file handling
+import random
+
+#########################
+## FUNCTION DEFINITIONS ##
+
+def participantLang():
+    '''Create language for participant from list of nonce words and English words/grammatical roles, probably need to save
+    this to a file somewhere, but honestly not even close to there yet'''
+
+    newlanguage = {}  # Dictionary for language for participant
+    engdictKeys = list(engdict.keys())
+    random.shuffle(engdictKeys) # Randomize language for each participant
+    for i in range(len(nonce_words)):
+        newlanguage[(engdictKeys[i],engdict[engdictKeys[i]])] = nonce_words[i] 
+        # Make a dictionary that has a tuple (Engword, function) as key and nonce word as value
+    return newlanguage, engdictKeys
+
+
+def findStimImage():
+    '''Gather the images for the single nouns and sentences into lists'''
+
+    nounpics = [] # List of file names for images of nouns
+    sentencepics = [] # List of file names for full Agent-Verb-Object sentences 
+    for pic in images:
+        if "_" in pic: # The nouns have 2 versions, presented R or L facing
+            noun = pic.split("_")
+            if len(noun) == 2:
+                nounpics.append(pic)
+            else:
+                sentencepics.append(pic)
+        else:
+            nounpics.append(pic)
+    return sentencepics, nounpics
+
+
+def simplifyThatDictionary():
+    '''Pull out just the nonce-English word pairs and create a new dictionary to be used in doTraining'''
+    
+    nldict, engKeys = participantLang() # Generate random nonce language for new participant, return a list of the english keys 
+    nlkeys = list(nldict.keys()) # Make a list of the dictionary keys to iterate over in the next line
+    nouns = [] # List for the nouns, needed to randomize incorrect noun in doNounTraining
+    noncedict = {}
+    for i in range(len(engKeys)):
+        if engdict[engKeys[i]] in ['agent','object']: # Make a list of the nouns for later on when the program needs a random noun
+            nouns.append(engKeys[i])
+    for i in range(len(nlkeys)):
+        noncedict[nlkeys[i][0]] = nldict[nlkeys[i]] # Make a dictionary that has an english word as the key and the nonce word as the value
+    return noncedict, nouns # English:nonce
+
+
+def makeButton(buttonName, buttonText):
+    # button names are A B C and D and have locations associated with them
+    # make autodrawing button (will have to be turned off to not display)
+    button = visual.Rect(
+        win,
+        width=buttonWidth,
+        height=buttonHeight,
+        fillColor=buttonColor,
+        pos=buttonPositions[buttonName],
+        autoDraw=True
+    )
+    button.draw()
+
+    text = visual.TextStim(
+        win,
+        text=buttonText,
+        color="black",
+        pos=buttonPositions[buttonName],
+    )
+    # textstim does not have autodraw as attribute before creation
+    text.setAutoDraw(True)
+    text.draw()
+    
+    return button, text
+
+
+def getClick(mouse, buttons, cons, eng):
+
+    # going to loop until click detected
+    clicked = False
+    
+    while not clicked:
+        # button is a tuple where 0 is shape obj and 1 is text obj
+        for n, button in enumerate(buttons):
+            # if mouse detected in shape (not clicked)
+            if button[0].contains(mouse):
+                # make button dark grey
+                button[0].setFillColor(hoverColor)
+                win.flip()
+            else:
+                # otherwise make button normal color
+                button[0].setFillColor(buttonColor)
+                win.flip()
+            # if click detected in button
+            if mouse.isPressedIn(button[0]):
+                # then break the loop
+                clicked = True
+                # and get the response
+                responseButton = n
+
+    responseText = buttons[responseButton][1]
+                
+    win.flip()
+    
+    return responseButton, responseText.text
+
+
+def initializeTrial(displayText, buttonNames, buttonTexts, pic):
+
+    # create mouse object (not active yet)
+    mouse = event.Mouse(visible=False)
+    
+    win.flip()
+   
+    # draw text stimulus and consigne
+    cons = visual.TextStim(
+        win,
+        text="Phrase to be translated:",
+        color="black",
+        pos=(0,260),
+        height=16
+    )
+    cons.setAutoDraw(True)
+    cons.draw()
+    
+    eng = visual.TextStim(
+        win,
+        text=displayText,
+        color='black',
+        pos=(0,200),
+        height=36
+    )
+    eng.setAutoDraw(True)
+    eng.draw()
+    
+    picObj = visual.ImageStim(
+        win,
+        image=pathToImages+pic+'.jpg'
+    )
+    picObj.setAutoDraw(True)
+    picObj.draw()
+    
+    # create button objects (they will keep drawing themselves until turned off)
+    buttonsAssc = {}
+    for n,i in enumerate(buttonNames):
+        buttonsAssc[i] = buttonTexts[n]
+
+    buttons = [makeButton(location, buttonsAssc[location]) for location in buttonsAssc.keys()]
+        
+        
+    win.flip()
+    
+    return mouse, buttons, cons, eng, picObj
