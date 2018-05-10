@@ -755,6 +755,7 @@ def whichWords(correctNouns, agt, pat):
         nPat = noun1
         respAgt = reverseNDict[noun2]
         respPat = reverseNDict[noun1]
+    print type(actAgt), type(actPat), type(noun1), type(noun2)
 #    elif actPat == noun2:
 #        worder = 'SOV'
 #        nAgt = noun1
@@ -768,7 +769,7 @@ def whichWords(correctNouns, agt, pat):
 #        respAgt = reverseNDict[noun2]
 #        respPat = reverseNDict[noun1]
 #        
-        return respAgt, respPat, nAgt, nPat, worder
+    return respAgt, respPat, nAgt, nPat, worder
 
 def sentTesting():
     
@@ -806,6 +807,7 @@ def sentTesting():
         }
         trial = pd.DataFrame([dico])
         stestingDf = stestingDf.append(trial)
+        i += 1
     return
 
 ##########
