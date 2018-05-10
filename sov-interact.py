@@ -708,7 +708,14 @@ def typingTrial(win,image_path,verb):
         #continually redraw text onscreen until return pressed
         #core.wait(0.5)
         #win.flip()
-        response = visual.TextStim(win, text=text+'|',color="Black",units = 'norm', pos = [-0.25,-0.75] )
+        response = visual.TextStim(
+            win, 
+            text=text+'|',
+            color="black",
+            units = 'norm', 
+            pos = [-0.25,-0.75], 
+            font='Monaco'
+        )
         response.setAutoDraw(True)
             # text=text+'|' adds a pipe after the typed text to signal where typing will start/continue    
         #win.flip()
@@ -940,8 +947,8 @@ thanksfornothing = u'''Thank you for participating, please let the experimenter 
 
 instructions(hello)
 
-doNounTraining(sujet)
-ntrainingDf.to_csv(nounTrainingFileName, index=None)
+#doNounTraining(sujet)
+#ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
 instructions(between_nouns)
 
@@ -955,6 +962,6 @@ instructions(sentences)
 
 instructions(sentence_test)
 
-#sentTesting()
-#stestingDf.to_csv(sentTestingFileName, index=None)
+sentTesting()
+stestingDf.to_csv(sentTestingFileName, index=None)
 core.quit()
