@@ -66,7 +66,7 @@ def simplifyThatDictionary():
     '''Pull out just the nonce-English word pairs and create a new dictionary to be used in doTraining'''
     
     nldict, engKeys = participantLang() # Generate random nonce language for new participant, return a list of the english keys 
-    nlkeys = list(nldict.keys()) # Make a list of the dictionary keys to iterate over in the line 65
+    nlkeys = list(nldict.keys()) # Make a list of the dictionary keys to iterate over in the line 75
     nouns = [] # List for the nouns, needed to randomize incorrect noun in doNounTraining
     noncedict = {}
     for i in range(len(engKeys)):
@@ -74,9 +74,15 @@ def simplifyThatDictionary():
             nouns.append(engKeys[i])
     for i in range(len(nlkeys)):
         noncedict[nlkeys[i][0]] = nldict[nlkeys[i]] # Make a dictionary that has an english word as the key and the nonce word as the value
-    pickle.dump(noncedict, open('../data/part_dict/{}-langDict.csv'.format(sujet), 'w+'))
+    pickle.dump(noncedict, open('../data/partDict/{}-langDict.csv'.format(sujet), 'w+'))
     return noncedict, nouns # noncedict = {English:nonce}
 
+def reverseDict():
+    reverseNonce = {}
+    nonceKeys = list(noncedict.keys())
+    for i in range(len(nonceKeys)):
+        reverseNonce[noncedict[nonceKeys[i]]] = nonceKeys[i]
+    return reverseNonce
 
 def playStim(x):
     # play sound and do not allow other processes to continue until sound finished
@@ -195,61 +201,6 @@ def makePhrase(words):
     stimulus = [sound.Sound('../stimuli/audio/'+i+'.wav') for i in words]
 
     return stimulus
-
-def typing_trial(win,image_path,instructions):
-	text=""
-	shifton=0 # allows caps and ?'s etc
-	instructions = visual.TextStim(win, text=instructions,color="DimGray",units='norm',pos=[0,0.75], wrapWidth = 1.5)
-	#you do not need the above line if you do not have any text displayed along with the image
-	image_stim=visual.ImageStim(win, image=image_path, units='norm',pos=[0,0],autoLog=True)
-	while event.getKeys(keyList=['return'])==[]:
-		letterlist=event.getKeys(keyList=['q','w','e','r','t','y','u','i','o','p','a','s','d','f',
-			'g','h','j','k','l','z','x','c','v','b','n','m','lshift','rshift','period','space','apostrophe','comma','1','slash','backspace'])
-		for l in letterlist:
-			if shifton:
-				if l == 'space':
-					text+=' '
-				elif l == 'slash':
-					text+='?'
-				elif l == '1':
-					text+='!'
-				elif len(l) > 1:
-					pass
-				elif l !='backspace':
-					text+=l.upper()
-				shifton=0
-			elif shifton == 0:
-		#if key isn't backspace, add key pressed to the string
-				if len(l) > 1:
-					if l == 'space':
-						text+=' '
-					elif l == 'period':
-						text+='.'
-					elif (l == 'lshift') | (l == 'rshift'):
-						shifton=1
-					elif l == 'comma':
-						text+=','
-					elif l == 'apostrophe':
-						text+='\''
-					elif l == 'backspace':
-						text=text[:-1]
-					elif l == 'slash':
-						text+='/'
-					else:
-						pass
-				elif l == '1':
-					pass
-				else: # it would have to be a letter at this point
-					text+=l
-				#otherwise, take the last letter off the string
-		#continually redraw text onscreen until return pressed
-		response = visual.TextStim(win, text=text+'|',color="black",units = 'norm', pos = [0,-0.75] )
-		# text=text+'|' adds a pipe after the typed text to signal where typing will start/continue    
-		response.draw()
-		instructions.draw()
-		image_stim.draw()
-		win.flip()
-	return text #this allows you to assigned the response to a variable outside the function (e.g., to store it)
 
 
 def doNounTrainingTrial(noun, wrongNoun, engNoun, nTrial):
@@ -443,24 +394,24 @@ def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
     return response, correct, buttonTexts[0], buttonTexts[1]
 
 
-def doNounTesting(sujet):
+def doNounTesting(sujet, repeat = 0):
 
     # ntestingDf will be updated by the function, so must be global
     global ntestingDf
     loop = 0
     num_correct = 0
-
     numberBlocks = 2
     testNouns = []
     for block in range(numberBlocks):
-        blockNouns = list(np.copy(nouns))
+        blockNouns = list(np.copy(nouns)) # nouns is generated in simplifyThatDictionary, and is a list of Eng nouns 
+        
         random.shuffle(blockNouns)
         testNouns.append(blockNouns)
 
     testNouns = testNouns[0] + testNouns[1] # don't do this normally
-    
-    for n,nounWord in enumerate(testNouns): # Show each noun once in each testing block
-        engNoun = noncedict[nounWord]
+
+    for n,engNoun in enumerate(testNouns): # Show each noun once in each testing block
+        nounWord = noncedict[engNoun]
         otherWord = random.choice(nouns)
         otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
         if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
@@ -478,29 +429,29 @@ def doNounTesting(sujet):
             'buttonA':buttonA,
             'buttonB':buttonB,
             'response':response,
-            'correct':correct
+            'correct':correct,
+            'repeat': repeat
         }
         trial = pd.DataFrame([dico])
         ntestingDf = ntestingDf.append(trial)
     print num_correct
-    checkLearning(num_correct, sujet) # Check to see if participant got at least 75% correct
+    checkLearning(num_correct, sujet, repeat) # Check to see if participant got at least 75% correct
     return
 
-def checkLearning(numCorrect, suj):
+def checkLearning(numCorrect, suj, repeat):
     '''Check how many of the noun testing trials participant got correct, if it is less than 75% (9) repeat nounTraining, 
     unless they've already been through it twice'''
 
-    if '-2' in suj: # Check to see if they're already done it twice
+    if repeat == 1: # Check to see if they're already done it twice
         if numCorrect < 9:
             instructions(thanksfornothing)
         else:
             pass
     elif numCorrect < 9: # If they got less than 75% correct, repeat training
         instructions(tryagain)
-        suj = suj+'-2'
         doNounTraining(suj, repeat=1)
         instructions(teststatement)
-        doNounTesting(suj)
+        doNounTesting(suj, repeat = 1)
     else:
         pass
     return
@@ -528,7 +479,7 @@ def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
     random.shuffle(buttonTexts)
 
     # create mouse and button objects, display instructions
-    mouse, buttons, eng, noun = initializeTrial(
+    mouse, buttons, eng, pic = initializeTrial(
         displayText=None,
         buttonNames=['A', 'B'],
         buttonTexts=['-----'] * len(buttonTexts),
@@ -585,7 +536,8 @@ def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
     #cons.setAutoDraw(False)
     eng.setAutoDraw(False) 
     consBis.setAutoDraw(False)
-
+    pic.setAutoDraw(False)
+    
     print order 
     return response, correct, buttonTexts[0], buttonTexts[1]
 
@@ -636,33 +588,221 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
         strainingDf = strainingDf.append(trial)
     return
 
-def processResponses(textResponse):
-    response = textResponse.strip()
-    
+#function to shuffle the elements in a list
+def shuffle(l):
+    return random.sample(l,len(l))
+
+#calculates the levenshtein edit distance between two sequences or strings, seq1 and seq2.  
+def levenshtein(seq1, seq2):
+    oneago = None
+    thisrow = range(1, len(seq2) + 1) + [0]
+    for x in xrange(len(seq1)):
+        twoago, oneago, thisrow = oneago, thisrow, [0] * len(seq2) + [x + 1]
+        for y in xrange(len(seq2)):
+            delcost = oneago[y] + 1
+            addcost = thisrow[y - 1] + 1
+            subcost = oneago[y - 1] + (seq1[x] != seq2[y])
+            thisrow[y] = min(delcost, addcost, subcost)
+    return thisrow[len(seq2) - 1]
+
+#Calculates the Demerau-levenshtein distance between two sequences or strings, s1 and s2
+#Difference with levenshtein: it allows transpositon as a edit operation on top of deletion, insertion and substitution.
+def dl(s1, s2):
+	d = {}
+	lenstr1 = len(s1)
+	lenstr2 = len(s2)
+	for i in xrange(-1,lenstr1+1):
+	    d[(i,-1)] = i+1
+	for j in xrange(-1,lenstr2+1):
+	    d[(-1,j)] = j+1
+	for i in xrange(lenstr1):
+	    for j in xrange(lenstr2):
+	        if s1[i] == s2[j]:
+	            cost = 0
+	        else:
+	            cost = 1
+	        d[(i,j)] = min(
+	                       d[(i-1,j)] + 1, # deletion
+	                       d[(i,j-1)] + 1, # insertion
+	                       d[(i-1,j-1)] + cost, # substitution
+	                      )
+	        if i and j and s1[i]==s2[j-1] and s1[i-1] == s2[j]:
+	            d[(i,j)] = min (d[(i,j)], d[i-2,j-2] + cost) # transposition
+	return d[lenstr1-1,lenstr2-1]
+
+#finds the closest correct word to the potentially incorrect word
+# modify this function to included any weighted selection you might want to incorporate
+def spellcheckWord(word,possibleWords):
+    possibleWords = shuffle(possibleWords) #shuffles so that the match is randomly selected among the closest
+    d = np.inf # set to arbitrarily large number
+    bestMatch = None
+    for possibleWord in possibleWords:
+        d_new = dl(word,possibleWord);# compute dl edit distance. To compute levenshtein substitute dl(0 for levenshtein())
+        # if closer than previous try, store replacement word in position i of output list
+        if d_new < d :
+            bestMatch = possibleWord
+            d = d_new
+    return bestMatch
+
+# Checks for 
+def spellcheckWords(str):
+    print "Now I'm here"
+    print str
+    str = str.lower() # check to make sure things are lower case
+    input = str.split(); # split into array of words - not specifying a seperator means that multipe whitespace is treated as one, empty whitespace is ignored
+    possibleWords = ['melnog', 'bloffen', 'neegoul', 'vaneep', 'klamen', 'slegam']#list containing the correct lexicon. You can also pass it as an argument tot he function depending on how variable this list is. It is the same across, I would leave it here.
+    correctedWords = [spellcheckWord(word,possibleWords) for word in input]
+    #output = ' '.join(correctedWords)# turn back into a string
+    print correctedWords
+    return correctedWords
+
+
+def typingTrial(win,image_path,verb):
+    text=""
+    shifton=0 # allows caps and ?'s etc
+    instructions = visual.TextStim(win, text='Please type the correct words to describe the image',color="Black",units='norm',pos=[0,0.75], wrapWidth = 1.5)
+    #you do not need the above line if you do not have any text displayed along with the image
+    imageStim=visual.ImageStim(win, image=image_path, units='norm',pos=[0,0],autoLog=True)
+    verbStim = visual.TextStim(win, text = verb, color = "Black", units = 'norm', pos=[0.25, -0.75])
+    while event.getKeys(keyList=['return'])==[]:
+        #text = ""
+        letterlist=event.getKeys(keyList=['q','w','e','r','t','y','u','i','o','p','a','s','d','f',
+            'g','h','j','k','l','z','x','c','v','b','n','m','lshift','rshift','period','space','apostrophe','comma','1','slash','backspace'])
+        for l in letterlist:
+            if shifton:
+                if l == 'space':
+                    text+=' '
+                elif l == 'slash':
+                    text+='?'
+                elif l == '1':
+                    text+='!'
+                elif len(l) > 1:
+                    pass
+                elif l !='backspace':
+                    text+=l.upper()
+                shifton=0
+            elif shifton == 0:
+        #if key isn't backspace, add key pressed to the string
+                if len(l) > 1:
+                    if l == 'space':
+                       text+=' '
+                    elif l == 'period':
+                       text+='.'
+                    elif (l == 'lshift') | (l == 'rshift'):
+                       shifton=1
+                    elif l == 'comma':
+                       text+=','
+                    elif l == 'apostrophe':
+                       text+='\''
+                    elif l == 'backspace':
+                       text=text[:-1]
+                    elif l == 'slash':
+                       text+='/'
+                    else:
+                       pass
+                elif l == '1':
+                    pass
+                else: # it would have to be a letter at this point
+                    text+=l
+                #otherwise, take the last letter off the string
+        #continually redraw text onscreen until return pressed
+        core.wait(0.5)
+        #win.flip()
+        response = visual.TextStim(win, text=text+'|',color="Black",units = 'norm', pos = [-0.25,-0.75] )
+        response.setAutoDraw(True)
+            # text=text+'|' adds a pipe after the typed text to signal where typing will start/continue    
+        #win.flip()
+        instructions.setAutoDraw(True)
+        imageStim.setAutoDraw(True)
+        verbStim.setAutoDraw(True)
+        win.flip()
+        response.setAutoDraw(False)
+        instructions.setAutoDraw(False)
+        imageStim.setAutoDraw(False)
+        verbStim.setAutoDraw(False)
+    return text#this allows you to assigned the response to a variable outside the function (e.g., to store it)
+
+def processResponses(responsestr):
+    print 'Made it to processing'
+    #responselst = responsestr.split(' ')
+    #processedresp = []
+    regex = re.compile('[^a-zA-Z ]')
+    responses = regex.sub('', responsestr)
+    print responses
+    cornouns = spellcheckWords(responses)
+    #print responses
+    return cornouns
+
+def whichWords(correctNouns, agt, pat):
+    '''Check what nouns the participant used, determine word order and return all of that juicy data'''
+    print correctNouns
+    actAgt = noncedict[agt]
+    actPat = noncedict[pat]
+    noun1 = correctNouns[0]
+    noun2 = correctNouns[1]
+    reverseNDict = reverseDict()
+    #print reverseNDict
+    #print noncedict
+    if actAgt == noun1:
+        worder = 'SOV'
+        nAgt = noun1 #save nonce response
+        nPat = noun2
+        respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
+        respPat = reverseNDict[noun2]
+    elif actAgt == noun2:
+        worder = 'OSV'
+        nAgt = noun2
+        nPat = noun1
+        respAgt = reverseNDict[noun2]
+        respPat = reverseNDict[noun1]
+#    elif actPat == noun2:
+#        worder = 'SOV'
+#        nAgt = noun1
+#        nPat = noun2
+#        respAgt = reverseNDict[noun1]
+#        respPat = reverseNDict[noun2]
+#    elif actPat == noun1:
+#        worder = 'OSV'
+#        nAgt = noun2
+#        nPat = noun1
+#        respAgt = reverseNDict[noun2]
+#        respPat = reverseNDict[noun1]
+#        
+        return respAgt, respPat, nAgt, nPat, worder
+
 def sentTesting():
     
     global stestingDf
     
     random.shuffle(sentencepics)
     i = 0
-    while i < 5:
+    while i < 2:
         pic = sentencepics[i]
         name, file = pic.split('.')
         sentencelist = name.split('_')
-        agent = noncedict[sentencelist[0]]
-        verb = noncedict[sentencelist[1]]
-        object = noncedict[sentencelist[2]]
+        agent = sentencelist[0]
+        verb = sentencelist[1]
+        nonceverb = noncedict[sentencelist[1]]
+        patient = sentencelist[2]
+        print noncedict[agent], noncedict[patient]
         imagePath = pathToImages+pic+'.jpg'
-        text = typing_trial(win, imagePath, instruction)
+        responses = typingTrial(win, imagePath, nonceverb)
+        correctNouns = processResponses(responses)
+        respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient)
         
         dico = {
             'suj':sujet,
             'trial':i,
             'image':pic,
-            'agent':sentencelist[0],
-            'verb':sentencelist[1],
-            'patient':sentencelist[2],
-            'response':text,
+            'agent':agent,
+            'patient':patient,
+            'response':responses,
+            'nAgt':nAgt,
+            'nPat':nPat,
+            'verb':verb,
+            'partAgt': respAgt,
+            'partPat': respPat,
+            'order':wordOrd
         }
         trial = pd.DataFrame([dico])
         stestingDf = stestingDf.append(trial)
@@ -754,7 +894,8 @@ nounTestingCols = [
     'buttonA',
     'buttonB',
     'response',
-    'correct'
+    'correct',
+    'iteration'
 ]
 ntestingDf = pd.DataFrame(columns=nounTestingCols)
 
@@ -764,11 +905,18 @@ stestingCols = [
     'trial',
     'image',
     'agent',
+    'patient',
     'verb',
-    'obj',
     'response',
+    'nAgt',
+    'nPat',
+    'partAgt',
+    'partPat',
+    'order'
 ]
 stestingDf = pd.DataFrame(columns=stestingCols)
+
+
 ############
 # Instructions/dialogue
 
@@ -795,15 +943,16 @@ instructions(hello)
 
 instructions(between_nouns)
 
-doNounTesting(sujet)
-ntestingDf.to_csv(nounTestingFileName, index = None)
+#doNounTesting(sujet)
+#ntestingDf.to_csv(nounTestingFileName, index = None)
 
 instructions(sentences)
 
-doSentTraining('OSV')
-strainingDf.to_csv(sentTrainingFileName, index=None)
+#doSentTraining('OSV')
+#strainingDf.to_csv(sentTrainingFileName, index=None)
 
-#instructions(sentence_test)
+instructions(sentence_test)
 
-
+sentTesting()
+stestingDf.to_csv(sentTestingFileName, index=None)
 core.quit()
