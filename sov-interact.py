@@ -706,7 +706,7 @@ def typingTrial(win,image_path,verb):
                     text+=l
                 #otherwise, take the last letter off the string
         #continually redraw text onscreen until return pressed
-        core.wait(0.5)
+        #core.wait(0.5)
         #win.flip()
         response = visual.TextStim(win, text=text+'|',color="Black",units = 'norm', pos = [-0.25,-0.75] )
         response.setAutoDraw(True)
@@ -755,7 +755,7 @@ def whichWords(correctNouns, agt, pat):
         nPat = noun1
         respAgt = reverseNDict[noun2]
         respPat = reverseNDict[noun1]
-    print type(actAgt), type(actPat), type(noun1), type(noun2)
+    #print type(actAgt), type(actPat), type(noun1), type(noun2)
 #    elif actPat == noun2:
 #        worder = 'SOV'
 #        nAgt = noun1
@@ -847,7 +847,7 @@ win = visual.Window(
 mouse = event.Mouse(visible=False)  # create mouse object that is invisible
 
 buttonWidth = 280
-buttonHeight = -80
+buttonHeight = -90
 
 buttonPositions = {
     'A': (buttonWidth/2*-1, buttonHeight/2*5),
@@ -940,8 +940,8 @@ thanksfornothing = u'''Thank you for participating, please let the experimenter 
 
 instructions(hello)
 
-# doNounTraining(sujet)
-# ntrainingDf.to_csv(nounTrainingFileName, index=None)
+doNounTraining(sujet)
+ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
 instructions(between_nouns)
 
@@ -955,6 +955,6 @@ instructions(sentences)
 
 instructions(sentence_test)
 
-sentTesting()
-stestingDf.to_csv(sentTestingFileName, index=None)
+#sentTesting()
+#stestingDf.to_csv(sentTestingFileName, index=None)
 core.quit()
