@@ -164,13 +164,24 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     picObj.draw()
     win.flip()
 
+    buttonsAssc = {}
+    for n,i in enumerate(buttonNames):
+        buttonsAssc[i] = buttonTexts[n]
+
+    buttons = [makeButton(location, buttonsAssc[location]) for location in buttonsAssc.keys()]
+    win.flip()
+
     core.wait(0.5)
     # make and play sound objects based on the nonce language of the participant'
     stims = makePhrase(audioStim)
     for stim in stims:
         playStim(stim)
 
-    core.wait(0.5)
+    if stim == 'none.wav':
+        core.wait(0.0)
+    else:
+        core.wait(0.5)
+
     eng = visual.TextStim( #text that gets presented
         win,
         text=displayText,
@@ -182,17 +193,7 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     eng.draw()
     win.flip()
 
-    # create button objects (they will keep drawing themselves until turned off)
-    buttonsAssc = {}
-    for n,i in enumerate(buttonNames):
-        buttonsAssc[i] = buttonTexts[n]
-
-    buttons = [makeButton(location, buttonsAssc[location]) for location in buttonsAssc.keys()]
-        
-        
-    win.flip()
     
-#    return mouse, buttons, cons, eng, picObj
     return mouse, buttons, eng, picObj
 
 
@@ -286,7 +287,7 @@ def doNounTraining(sujet, repeat=0):
     global ntrainingDf
     
     loop = 0
-    while loop < 1: # Iterate through the nouns 5 times, randomizing the order of the nouns within each iteration
+    while loop < 2: # Iterate through the nouns 5 times, randomizing the order of the nouns within each iteration
         random.shuffle(nouns) # Randomize order for presentation of nouns in training
         i = 0 # because we need to repeat incorrect trials, must have own counter
         while i < 6: # Iterate through entire noun list once
@@ -310,7 +311,8 @@ def doNounTraining(sujet, repeat=0):
             dico = {
                 'suj':sujet,
                 'trial':i,
-                'correct_noun':nounWord,
+                'targetNoun':nounWord,
+                'engNoun':engNoun,
                 'buttonA':buttonA,
                 'buttonB':buttonB,
                 'response':response,
@@ -319,14 +321,14 @@ def doNounTraining(sujet, repeat=0):
             }
             trial = pd.DataFrame([dico])
             ntrainingDf = ntrainingDf.append(trial)
-        loop += 1 # Update loop count after each successful completion of all 6 nouns in a training block
+        loop += 1
     return
 
 
 def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
 
     # wait 500 ms at beginning of trial
-    core.wait(0.5)
+    #core.wait(0.5)
     
     # Get the correct nonce word and an incorrect one for the testing
     target = noun # Correct word that matches image
@@ -346,7 +348,7 @@ def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
     )
 
     # wait 500 ms after sound
-    core.wait(0.5)
+    #core.wait(0.5)
 
     consBisText = "...click on the word that matches the image..."
     consBis = visual.TextStim(
@@ -398,7 +400,7 @@ def doNounTesting(sujet, repeat = 0):
 
     # ntestingDf will be updated by the function, so must be global
     global ntestingDf
-    loop = 0
+
     num_correct = 0
     numberBlocks = 2
     testNouns = []
@@ -430,7 +432,7 @@ def doNounTesting(sujet, repeat = 0):
             'buttonB':buttonB,
             'response':response,
             'correct':correct,
-            'repeat': repeat
+            'iteration': repeat
         }
         trial = pd.DataFrame([dico])
         ntestingDf = ntestingDf.append(trial)
@@ -449,7 +451,7 @@ def checkLearning(numCorrect, suj, repeat):
             pass
     elif numCorrect < 9: # If they got less than 75% correct, repeat training
         instructions(tryagain)
-        doNounTraining(suj, repeat=1)
+        doNounTraining(suj, repeat = 1)
         instructions(teststatement)
         doNounTesting(suj, repeat = 1)
     else:
@@ -549,9 +551,9 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
     # because we need to repeat incorrect trials, must have own counter
     i = 0
     if primOrder == 'OSV':
-        orderlist = ['OSV']*7 + ['SOV']*3
+        orderlist = ['OSV']*42 + ['SOV']*18
     else:
-        orderlist = ['OSV']*3 + ['SOV']*7
+        orderlist = ['OSV']*18 + ['SOV']*42
     random.shuffle(orderlist)
 
     random.shuffle(sentencepics)
@@ -578,7 +580,7 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
             'order':primOrder,
             'agent':sentencelist[0],
             'verb':sentencelist[1],
-            'object':sentencelist[2],
+            'patient':sentencelist[2],
             'buttonA':buttonA,
             'buttonB':buttonB,
             'response':response,
@@ -660,10 +662,18 @@ def spellcheckWords(str):
 def typingTrial(win,image_path,verb):
     text=""
     shifton=0 # allows caps and ?'s etc
-    instructions = visual.TextStim(win, text='Please type the correct words to describe the image',color="Black",units='norm',pos=[0,0.75], wrapWidth = 1.5)
+    instructions = visual.TextStim(win, text=typingInstructions,
+        color="Black",units='norm',pos=[0,0.75], wrapWidth = 1.5, height=0.05)
     #you do not need the above line if you do not have any text displayed along with the image
     imageStim=visual.ImageStim(win, image=image_path, units='norm',pos=[0,0],autoLog=True)
-    verbStim = visual.TextStim(win, text = verb, color = "Black", units = 'norm', pos=[0.25, -0.75])
+    verbStim = visual.TextStim(
+        win, 
+        text = verb, 
+        color = "Black", 
+        units = 'norm', 
+        pos=[0.5, -0.75], 
+        font='Monaco'
+    )
     while event.getKeys(keyList=['return'])==[]:
         #text = ""
         letterlist=event.getKeys(keyList=['q','w','e','r','t','y','u','i','o','p','a','s','d','f',
@@ -706,8 +716,6 @@ def typingTrial(win,image_path,verb):
                     text+=l
                 #otherwise, take the last letter off the string
         #continually redraw text onscreen until return pressed
-        #core.wait(0.5)
-        #win.flip()
         response = visual.TextStim(
             win, 
             text=text+'|',
@@ -718,7 +726,6 @@ def typingTrial(win,image_path,verb):
         )
         response.setAutoDraw(True)
             # text=text+'|' adds a pipe after the typed text to signal where typing will start/continue    
-        #win.flip()
         instructions.setAutoDraw(True)
         imageStim.setAutoDraw(True)
         verbStim.setAutoDraw(True)
@@ -730,26 +737,25 @@ def typingTrial(win,image_path,verb):
     return text#this allows you to assigned the response to a variable outside the function (e.g., to store it)
 
 def processResponses(responsestr):
-    print 'Made it to processing'
-    #responselst = responsestr.split(' ')
-    #processedresp = []
+    '''Takes in participant response (str), strips the non-alpha characters (leaves white space),
+    passes it to spellcheck, which uses levenshtein distance to match back to closest words from
+    participant target language, retruns the processed/corrected nouns from that function'''
+
     regex = re.compile('[^a-zA-Z ]')
     responses = regex.sub('', responsestr)
-    print responses
-    cornouns = spellcheckWords(responses)
-    #print responses
-    return cornouns
+
+    correctedNouns = spellcheckWords(responses)
+
+    return correctedNouns
 
 def whichWords(correctNouns, agt, pat):
-    '''Check what nouns the participant used, determine word order and return all of that juicy data'''
-    print correctNouns
+    '''Check what nouns the participant used, determine word order, and return all of that juicy data'''
+
     actAgt = noncedict[agt]
     actPat = noncedict[pat]
     noun1 = correctNouns[0]
     noun2 = correctNouns[1]
     reverseNDict = reverseDict()
-    #print reverseNDict
-    #print noncedict
     if actAgt == noun1:
         worder = 'SOV'
         nAgt = noun1 #save nonce response
@@ -762,42 +768,36 @@ def whichWords(correctNouns, agt, pat):
         nPat = noun1
         respAgt = reverseNDict[noun2]
         respPat = reverseNDict[noun1]
-    #print type(actAgt), type(actPat), type(noun1), type(noun2)
-#    elif actPat == noun2:
-#        worder = 'SOV'
-#        nAgt = noun1
-#        nPat = noun2
-#        respAgt = reverseNDict[noun1]
-#        respPat = reverseNDict[noun2]
-#    elif actPat == noun1:
-#        worder = 'OSV'
-#        nAgt = noun2
-#        nPat = noun1
-#        respAgt = reverseNDict[noun2]
-#        respPat = reverseNDict[noun1]
-#        
+       
     return respAgt, respPat, nAgt, nPat, worder
 
-def sentTesting():
+def sentTesting(primOrder):
     
     global stestingDf
     
     random.shuffle(sentencepics)
-    i = 0
-    while i < 2:
-        pic = sentencepics[i]
-        name, file = pic.split('.')
-        sentencelist = name.split('_')
-        agent = sentencelist[0]
-        verb = sentencelist[1]
-        nonceverb = noncedict[sentencelist[1]]
-        patient = sentencelist[2]
-        print noncedict[agent], noncedict[patient]
+    #i = 0
+    for i in range(2):
+        name = sentencepics[i]
+        pic, file = name.split('.')
+        sentencelist = pic.split('_')
+        agent = sentencelist[0]         # English agent
+        verb = sentencelist[1]          # Eng verb
+        nonceagt = noncedict[agent]     # Target nonce agent
+        nonceverb = noncedict[verb]     # Nonce verb
+        patient = sentencelist[2]       # Eng pateint
+        noncepat = noncedict[patient]   # Target nonce patient
+        print nonceagt, noncepat
         imagePath = pathToImages+pic+'.jpg'
-        responses = typingTrial(win, imagePath, nonceverb)
-        correctNouns = processResponses(responses)
-        respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient)
+        responses = typingTrial(win, imagePath, nonceverb) # Initialize typing trial
+        correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
+        respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
+        # Get word order used by participant and what words they used in the trial
         
+        if wordOrd == primOrder:
+            domOrder = 0
+        else:
+            domOrder = 1
         dico = {
             'suj':sujet,
             'trial':i,
@@ -805,16 +805,19 @@ def sentTesting():
             'agent':agent,
             'patient':patient,
             'response':responses,
-            'nAgt':nAgt,
-            'nPat':nPat,
+            'nAgt':nAgt, # Agent used by participant (in case different from intended in stim)
+            'nPat':nPat, # Patient used by participant (in case different from intended in stim)
             'verb':verb,
-            'partAgt': respAgt,
-            'partPat': respPat,
-            'order':wordOrd
+            'partAgt': respAgt, # English agent used by part
+            'partPat': respPat, # English pat used by part
+            'expAgt':nonceagt, # Intended nonce agt
+            'expPat':noncepat, # Intended nonce pat
+            'responseOrder':wordOrd, # Word order used by participant
+            'dominantOrder':domOrder
         }
         trial = pd.DataFrame([dico])
         stestingDf = stestingDf.append(trial)
-        i += 1
+        #i += 1
     return
 
 ##########
@@ -870,7 +873,8 @@ nounTrainingFileName = '../data/nounTraining/{}.csv'.format(sujet)
 ntrainingCols = [
     'suj',
     'trial',
-    'correct_noun',
+    'targetNoun',
+    'engNoun',
     'buttonA',
     'buttonB',
     'response',
@@ -886,7 +890,7 @@ strainingCols = [
     'order',
     'agent',
     'verb',
-    'obj',
+    'patient',
     'buttonA',
     'buttonB',
     'response',
@@ -921,7 +925,10 @@ stestingCols = [
     'nPat',
     'partAgt',
     'partPat',
-    'order'
+    'expAgt',
+    'expPat',
+    'responseOrder',
+    'dominantOrder'
 ]
 stestingDf = pd.DataFrame(columns=stestingCols)
 
@@ -942,18 +949,22 @@ sentences = u'''Now that you've learned the words, let's try some sentences'''
 sentence_test = u'''Type a sentence to describe the image'''
 
 thanksfornothing = u'''Thank you for participating, please let the experimenter know that you have finished'''
+
+typingInstructions = u'''For the picture below, please type in the two words to describe the action taking place.
+Remember that the words in this language are:
+\nmelnog, slegam, vaneep, bloffen, neegoul, and klamen'''
 ############
 # RUN THE EXPERIMENT
 
 instructions(hello)
 
-#doNounTraining(sujet)
-#ntrainingDf.to_csv(nounTrainingFileName, index=None)
+doNounTraining(sujet)
+ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
 instructions(between_nouns)
 
-#doNounTesting(sujet)
-#ntestingDf.to_csv(nounTestingFileName, index = None)
+# doNounTesting(sujet)
+# ntestingDf.to_csv(nounTestingFileName, index = None)
 
 instructions(sentences)
 
@@ -962,6 +973,6 @@ instructions(sentences)
 
 instructions(sentence_test)
 
-sentTesting()
-stestingDf.to_csv(sentTestingFileName, index=None)
+#sentTesting('OSV')
+#stestingDf.to_csv(sentTestingFileName, index=None)
 core.quit()
