@@ -18,7 +18,7 @@ sujet= 'OSV001'
 def instructions(x):
     'Display instructions on screen and wait for participant to press button'
     win.flip()
-    visual.TextStim(win, text=x, color="black", wrapWidth=800).draw()
+    visual.TextStim(win, text=x, color="black", wrapWidth=700).draw()
     win.flip()
     event.waitKeys()
     win.flip()
@@ -171,16 +171,15 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     buttons = [makeButton(location, buttonsAssc[location]) for location in buttonsAssc.keys()]
     win.flip()
 
-    core.wait(0.5)
+    if audioStim == ['none']:
+        core.wait(0.0)
+    else:
+        core.wait(0.5)
     # make and play sound objects based on the nonce language of the participant'
     stims = makePhrase(audioStim)
     for stim in stims:
         playStim(stim)
 
-    if stim == 'none.wav':
-        core.wait(0.0)
-    else:
-        core.wait(0.5)
 
     eng = visual.TextStim( #text that gets presented
         win,
@@ -281,47 +280,57 @@ def doNounTrainingTrial(noun, wrongNoun, engNoun, nTrial):
     return response, correct, buttonTexts[0], buttonTexts[1]
 
 
-def doNounTraining(sujet, repeat=0):
+def doNounTraining(sujet, repeat = 0):
 
     # ntrainingDf will be updated by the function, so must be global
     global ntrainingDf
     
-    loop = 0
-    while loop < 2: # Iterate through the nouns 5 times, randomizing the order of the nouns within each iteration
-        random.shuffle(nouns) # Randomize order for presentation of nouns in training
-        i = 0 # because we need to repeat incorrect trials, must have own counter
-        while i < 6: # Iterate through entire noun list once
-            engNoun = nouns[i]
-            nounWord = noncedict[engNoun]
-            otherWord = random.choice(nouns)
-            otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
-            if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
-        # do the trial and recover button content
-                response, correct, buttonA, buttonB = doNounTrainingTrial(nounWord, otherNonce, engNoun, i)
-            else:
-                continue
-    
-        # if trial correct, move on, else repeat
-            if correct == 1:
-                i += 1
-                print i
-            else:
-                continue
+    numberBlocks = 2
+    trainingNouns = []
+    for block in range(numberBlocks):
+        blockNouns = list(np.copy(nouns)) # nouns is generated in simplifyThatDictionary, and is a list of Eng nouns 
+        
+        random.shuffle(blockNouns)
+        trainingNouns.append(blockNouns)
 
-            dico = {
-                'suj':sujet,
-                'trial':i,
-                'targetNoun':nounWord,
-                'engNoun':engNoun,
-                'buttonA':buttonA,
-                'buttonB':buttonB,
-                'response':response,
-                'correct':correct,
-                'iteration':repeat
-            }
-            trial = pd.DataFrame([dico])
-            ntrainingDf = ntrainingDf.append(trial)
-        loop += 1
+    trainingNouns = trainingNouns[0] + trainingNouns[1] 
+    #+ trainingNouns[2]+trainingNouns[3]+trainingNouns[4]
+    # loop = 0
+    # while loop < 2: # Iterate through the nouns 5 times, randomizing the order of the nouns within each iteration
+    #     random.shuffle(nouns) # Randomize order for presentation of nouns in training
+    i = 0 # because we need to repeat incorrect trials, must have own counter
+    while i < 12: # Iterate through entire noun list once
+        engNoun = trainingNouns[i]
+        nounWord = noncedict[engNoun]
+        otherWord = random.choice(nouns)
+        otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
+        if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
+    # do the trial and recover button content
+            response, correct, buttonA, buttonB = doNounTrainingTrial(nounWord, otherNonce, engNoun, i)
+        else:
+            continue
+
+    # if trial correct, move on, else repeat
+        if correct == 1:
+            i += 1
+            print i
+        else:
+            continue
+        print repeat
+        dico = {
+            'suj':sujet,
+            'trial':i,
+            'targetNoun':nounWord,
+            'engNoun':engNoun,
+            'buttonA':buttonA,
+            'buttonB':buttonB,
+            'response':response,
+            'correct':correct,
+            'iteration':repeat
+        }
+        trial = pd.DataFrame([dico])
+        ntrainingDf = ntrainingDf.append(trial)
+        #loop += 1
     return
 
 
@@ -410,8 +419,7 @@ def doNounTesting(sujet, repeat = 0):
         random.shuffle(blockNouns)
         testNouns.append(blockNouns)
 
-    testNouns = testNouns[0] + testNouns[1] # don't do this normally
-
+    testNouns = testNouns[0] + testNouns[1] # don't do this normally 
     for n,engNoun in enumerate(testNouns): # Show each noun once in each testing block
         nounWord = noncedict[engNoun]
         otherWord = random.choice(nouns)
@@ -420,10 +428,12 @@ def doNounTesting(sujet, repeat = 0):
     # do the trial and recover button content
             response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, n)
             num_correct += correct
-            print num_correct
+            print num_correct, n 
         else: 
+            #print nounWord, otherNonce
+            #print "mod n: ", n 
             continue
-
+            
         dico = {
             'suj':sujet,
             'trial':n,
@@ -648,8 +658,7 @@ def spellcheckWord(word,possibleWords):
 
 # Checks for 
 def spellcheckWords(str):
-    print "Now I'm here"
-    print str
+    
     str = str.lower() # check to make sure things are lower case
     input = str.split(); # split into array of words - not specifying a seperator means that multipe whitespace is treated as one, empty whitespace is ignored
     possibleWords = ['melnog', 'bloffen', 'neegoul', 'vaneep', 'klamen', 'slegam']#list containing the correct lexicon. You can also pass it as an argument tot he function depending on how variable this list is. It is the same across, I would leave it here.
@@ -805,19 +814,19 @@ def sentTesting(primOrder):
             'agent':agent,
             'patient':patient,
             'response':responses,
-            'nAgt':nAgt, # Agent used by participant (in case different from intended in stim)
-            'nPat':nPat, # Patient used by participant (in case different from intended in stim)
+            'nonPartAgt':nAgt, # Agent used by participant (in case different from intended in stim)
+            'nonPartPat':nPat, # Patient used by participant (in case different from intended in stim)
             'verb':verb,
-            'partAgt': respAgt, # English agent used by part
-            'partPat': respPat, # English pat used by part
-            'expAgt':nonceagt, # Intended nonce agt
-            'expPat':noncepat, # Intended nonce pat
+            'engPartAgt': respAgt, # English agent used by part
+            'engPartPat': respPat, # English pat used by part
+            'expNAgt':nonceagt, # Intended nonce agt
+            'expNPat':noncepat, # Intended nonce pat
             'responseOrder':wordOrd, # Word order used by participant
             'dominantOrder':domOrder
         }
         trial = pd.DataFrame([dico])
         stestingDf = stestingDf.append(trial)
-        #i += 1
+    
     return
 
 ##########
@@ -861,9 +870,7 @@ buttonHeight = -90
 
 buttonPositions = {
     'A': (buttonWidth/2*-1, buttonHeight/2*5),
-    'B': (buttonWidth/2, buttonHeight/2*5),
-    'C': (buttonWidth/2*-1, buttonHeight/2*-1),
-    'D': (buttonWidth/2, buttonHeight/2*-1)
+    'B': (buttonWidth/2, buttonHeight/2*5)
 }
 
 hoverColor = 'lightgrey' # "#C0C0C0"
@@ -921,32 +928,40 @@ stestingCols = [
     'patient',
     'verb',
     'response',
-    'nAgt',
-    'nPat',
-    'partAgt',
-    'partPat',
-    'expAgt',
-    'expPat',
+    'nonPartAgt',
+    'nonPartPat',
+    'engPartAgt',
+    'engPartPat',
+    'expNAgt',
+    'expNPat',
     'responseOrder',
     'dominantOrder'
 ]
 stestingDf = pd.DataFrame(columns=stestingCols)
 
-
 ############
 # Instructions/dialogue
 
-hello = u'''Hello, and welcome! I need to add more to this bit about what to actually do'''
+hello = u'''Hello, and welcome! You're about to learn part of a new language. There are four parts to this phase. 
+First you'll learn the nouns of this language. 
+Second is a very short test, just to see how much you've learned.
+Third you'll see pictures with sentences in the new language describing them.
+And fourth you'll have the opportunity to type in your own responses to describe scenes in the new language!
 
-between_nouns = u'''Well done! You've completed the first phase! Let's see what you remember'''
+For some of these sections you will hear a native speaker say the word or sentence you're learning. In these sections, you're job is to match the word and image presented to the correct button on the bottom of the screen.
+\n                      Let's get started!
+                 Press the spacebar to continue
+'''
+
+between_nouns = u'''Well done! You've completed the first phase! Let's see what you remember. You will see a picture, and then respond by clicking on the button with the correct word.'''
 
 tryagain = u'''That was really good, but let's go over the words one more time'''
 
-teststatement = u'''Something encouraging about finishing nouns again'''
+teststatement = u'''Nice job! Just one more short test and we'll move on to some sentences!'''
 
-sentences = u'''Now that you've learned the words, let's try some sentences'''
+sentences = u'''Now that you've learned the words, let's try some sentences. In this section you'll be shown an image and our native speaker will describe it. You're job is to match what you see and the speaker's description to the phrases presented at the bottom of the screen.'''
 
-sentence_test = u'''Type a sentence to describe the image'''
+sentence_test = u'''For this part, you're task is to describe the scene using the nouns you've learned. The appropriate verb will be presented at the bottom of the screen under the image.'''
 
 thanksfornothing = u'''Thank you for participating, please let the experimenter know that you have finished'''
 
@@ -958,13 +973,13 @@ Remember that the words in this language are:
 
 instructions(hello)
 
-doNounTraining(sujet)
-ntrainingDf.to_csv(nounTrainingFileName, index=None)
+# doNounTraining(sujet)
+# ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
 instructions(between_nouns)
 
-# doNounTesting(sujet)
-# ntestingDf.to_csv(nounTestingFileName, index = None)
+doNounTesting(sujet)
+ntestingDf.to_csv(nounTestingFileName, index = None)
 
 instructions(sentences)
 
