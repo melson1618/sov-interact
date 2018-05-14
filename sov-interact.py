@@ -170,7 +170,7 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
 
     buttons = [makeButton(location, buttonsAssc[location]) for location in buttonsAssc.keys()]
     win.flip()
-
+    
     if audioStim == ['none']:
         core.wait(0.0)
     else:
@@ -180,7 +180,8 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     for stim in stims:
         playStim(stim)
 
-
+    
+    #core.wait(0.5)
     eng = visual.TextStim( #text that gets presented
         win,
         text=displayText,
@@ -191,6 +192,7 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     eng.setAutoDraw(True)
     eng.draw()
     win.flip()
+
 
     
     return mouse, buttons, eng, picObj
@@ -313,10 +315,10 @@ def doNounTraining(sujet, repeat = 0):
     # if trial correct, move on, else repeat
         if correct == 1:
             i += 1
-            print i
+            #print i
         else:
             continue
-        print repeat
+        #print repeat
         dico = {
             'suj':sujet,
             'trial':i,
@@ -329,7 +331,9 @@ def doNounTraining(sujet, repeat = 0):
             'iteration':repeat
         }
         trial = pd.DataFrame([dico])
+        print 'trial', trial
         ntrainingDf = ntrainingDf.append(trial)
+
         #loop += 1
     return
 
@@ -404,6 +408,10 @@ def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
     
     return response, correct, buttonTexts[0], buttonTexts[1]
 
+def buttonWordsDif():
+    otherWord = random.choice(nouns)
+    otherNonce = noncedict[otherWord]
+    return otherWord, otherNonce
 
 def doNounTesting(sujet, repeat = 0):
 
@@ -422,17 +430,18 @@ def doNounTesting(sujet, repeat = 0):
     testNouns = testNouns[0] + testNouns[1] # don't do this normally 
     for n,engNoun in enumerate(testNouns): # Show each noun once in each testing block
         nounWord = noncedict[engNoun]
-        otherWord = random.choice(nouns)
-        otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
-        if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
+        # otherWord = random.choice(nouns)
+        # otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
+        wordsDif = False
+        while not wordsDif:
+            nounWord, otherNonce = buttonWordsDif()
+            if nounWord != otherNonce:
+                wordsDif = True
+
+        # if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
     # do the trial and recover button content
-            response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, n)
-            num_correct += correct
-            print num_correct, n 
-        else: 
-            #print nounWord, otherNonce
-            #print "mod n: ", n 
-            continue
+        response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, n)
+        num_correct += correct
             
         dico = {
             'suj':sujet,
@@ -465,16 +474,17 @@ def checkLearning(numCorrect, suj, repeat):
         instructions(teststatement)
         doNounTesting(suj, repeat = 1)
     else:
-        if 'OSV' in suj:        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
-            instructions(sentences)
-            doSentTraining('OSV')
-            instructions(sentence_test)
-            sentTesting('OSV')
-        else:
-            instructions(sentences)
-            doSentTraining('SOV')
-            instructions(sentence_test)
-            sentTesting('SOV')
+        # if 'OSV' in suj:        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
+        #     instructions(sentences)
+        #     doSentTraining('OSV')
+        #     instructions(sentence_test)
+        #     sentTesting('OSV')
+        # else:
+        #     instructions(sentences)
+        #     doSentTraining('SOV')
+        #     instructions(sentence_test)
+        #     sentTesting('SOV')
+        pass
     return
 
 def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
@@ -875,11 +885,13 @@ win = visual.Window(
 mouse = event.Mouse(visible=False)  # create mouse object that is invisible
 
 buttonWidth = 280
-buttonHeight = -90
+buttonHeight = -80
 
 buttonPositions = {
     'A': (buttonWidth/2*-1, buttonHeight/2*5),
-    'B': (buttonWidth/2, buttonHeight/2*5)
+    'B': (buttonWidth/2, buttonHeight/2*5),
+    # 'C': (buttonWidth/2*-1, buttonHeight/2*-5),
+    # 'D': (buttonWidth/2, buttonHeight/2*-5)
 }
 
 hoverColor = 'lightgrey' # "#C0C0C0"
@@ -982,8 +994,8 @@ Remember that the words in this language are:
 
 instructions(hello)
 
-# doNounTraining(sujet)
-# ntrainingDf.to_csv(nounTrainingFileName, index=None)
+doNounTraining(sujet)
+ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
 instructions(between_nouns)
 
