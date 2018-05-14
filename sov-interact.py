@@ -465,7 +465,16 @@ def checkLearning(numCorrect, suj, repeat):
         instructions(teststatement)
         doNounTesting(suj, repeat = 1)
     else:
-        pass
+        if 'OSV' in suj:        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
+            instructions(sentences)
+            doSentTraining('OSV')
+            instructions(sentence_test)
+            sentTesting('OSV')
+        else:
+            instructions(sentences)
+            doSentTraining('SOV')
+            instructions(sentence_test)
+            sentTesting('SOV')
     return
 
 def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
@@ -981,13 +990,13 @@ instructions(between_nouns)
 doNounTesting(sujet)
 ntestingDf.to_csv(nounTestingFileName, index = None)
 
-instructions(sentences)
+
 
 #doSentTraining('OSV')
-#strainingDf.to_csv(sentTrainingFileName, index=None)
+strainingDf.to_csv(sentTrainingFileName, index=None)
 
-instructions(sentence_test)
+
 
 #sentTesting('OSV')
-#stestingDf.to_csv(sentTestingFileName, index=None)
+stestingDf.to_csv(sentTestingFileName, index=None)
 core.quit()
