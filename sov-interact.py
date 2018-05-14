@@ -158,7 +158,8 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     win.flip()
     picObj = visual.ImageStim(
         win,
-        image=pathToImages+pic+'.jpg'
+        image=pathToImages+pic+'.jpg',
+        pos = (0, 20)
     )
     picObj.setAutoDraw(True)
     picObj.draw()
@@ -297,9 +298,7 @@ def doNounTraining(sujet, repeat = 0):
 
     trainingNouns = trainingNouns[0] + trainingNouns[1] 
     #+ trainingNouns[2]+trainingNouns[3]+trainingNouns[4]
-    # loop = 0
-    # while loop < 2: # Iterate through the nouns 5 times, randomizing the order of the nouns within each iteration
-    #     random.shuffle(nouns) # Randomize order for presentation of nouns in training
+
     i = 0 # because we need to repeat incorrect trials, must have own counter
     while i < 12: # Iterate through entire noun list once
         engNoun = trainingNouns[i]
@@ -315,10 +314,10 @@ def doNounTraining(sujet, repeat = 0):
     # if trial correct, move on, else repeat
         if correct == 1:
             i += 1
-            #print i
+            
         else:
             continue
-        #print repeat
+
         dico = {
             'suj':sujet,
             'trial':i,
@@ -333,7 +332,7 @@ def doNounTraining(sujet, repeat = 0):
         trial = pd.DataFrame([dico])
         print 'trial', trial
         ntrainingDf = ntrainingDf.append(trial)
-
+        print 'update', ntrainingDf
         #loop += 1
     return
 
@@ -434,7 +433,7 @@ def doNounTesting(sujet, repeat = 0):
         # otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
         wordsDif = False
         while not wordsDif:
-            nounWord, otherNonce = buttonWordsDif()
+            otherWord, otherNonce = buttonWordsDif()
             if nounWord != otherNonce:
                 wordsDif = True
 
@@ -572,6 +571,17 @@ def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
     print order 
     return response, correct, buttonTexts[0], buttonTexts[1]
 
+def sentTrials(i):
+
+    random.shuffle(sentencepics)
+    name = sentencepics[i]
+    pic, file = name.split('.')
+    sentencelist = pic.split('_')
+    agent = sentencelist[0]         # English agent
+    verb = sentencelist[1]
+    patient = sentencelist[2]
+
+    return pic, agent, verb, patient
 
 def doSentTraining(primOrder): # Specify the dominant word order for the participant ('OSV' or 'SOV')
     
@@ -585,18 +595,19 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
         orderlist = ['OSV']*18 + ['SOV']*42
     random.shuffle(orderlist)
 
-    random.shuffle(sentencepics)
+    #random.shuffle(sentencepics)
 
     while i < 5:
-        pic = sentencepics[i]
-        name, file = pic.split('.')
-        sentencelist = name.split('_')
-        agent = noncedict[sentencelist[0]]
-        verb = noncedict[sentencelist[1]]
-        object = noncedict[sentencelist[2]]
+        #pic = sentencepics[i]
+        #name, file = pic.split('.')
+        #sentencelist = name.split('_')
+        pic, engAgt, engVerb, engPat = sentTrials(i)
+        agent = noncedict[engAgt]
+        verb = noncedict[engVerb]
+        patient = noncedict[engPat]
         order = orderlist[i] #random.choice(orderlist)
         
-        response, correct, buttonA, buttonB = doSentTrainingTrial(agent, verb, object, name, order, i)
+        response, correct, buttonA, buttonB = doSentTrainingTrial(agent, verb, patient, pic, order, i)
         
         if correct == 1:
             i += 1
@@ -607,9 +618,9 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
             'suj':sujet,
             'trial':i,
             'order':primOrder,
-            'agent':sentencelist[0],
-            'verb':sentencelist[1],
-            'patient':sentencelist[2],
+            'agent':engAgt,
+            'verb':engVerb,
+            'patient':engPat,
             'buttonA':buttonA,
             'buttonB':buttonB,
             'response':response,
@@ -779,18 +790,16 @@ def processResponses(responsestr):
 def whichWords(correctNouns, agt, pat):
     '''Check what nouns the participant used, determine word order, and return all of that juicy data'''
 
-    actAgt = noncedict[agt]
-    actPat = noncedict[pat]
     noun1 = correctNouns[0]
     noun2 = correctNouns[1]
     reverseNDict = reverseDict()
-    if actAgt == noun1:
+    if agt == noun1 or pat == noun2:
         worder = 'SOV'
         nAgt = noun1 #save nonce response
         nPat = noun2
         respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
         respPat = reverseNDict[noun2]
-    elif actAgt == noun2:
+    elif agt == noun2 or pat == noun1:
         worder = 'OSV'
         nAgt = noun2
         nPat = noun1
@@ -805,19 +814,17 @@ def sentTesting(primOrder):
     
     random.shuffle(sentencepics)
     #i = 0
-    for i in range(2):
-        name = sentencepics[i]
-        pic, file = name.split('.')
-        sentencelist = pic.split('_')
-        agent = sentencelist[0]         # English agent
-        verb = sentencelist[1]          # Eng verb
-        nonceagt = noncedict[agent]     # Target nonce agent
-        nonceverb = noncedict[verb]     # Nonce verb
-        patient = sentencelist[2]       # Eng pateint
-        noncepat = noncedict[patient]   # Target nonce patient
-        print nonceagt, noncepat
+    for i in range(5):
+        #name = sentencepics[i]
+        #pic, file = name.split('.')
+        #sentencelist = pic.split('_')
+        pic, engAgt, engVerb, engPat = sentTrials(i)
+        agent = noncedict[engAgt]      # Target nonce agent
+        verb = noncedict[engVerb]       # Nonce verb
+        patient = noncedict[engPat]     # Target nonce patient
+        print agent, patient
         imagePath = pathToImages+pic+'.jpg'
-        responses = typingTrial(win, imagePath, nonceverb) # Initialize typing trial
+        responses = typingTrial(win, imagePath, verb) # Initialize typing trial
         correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
         respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
         # Get word order used by participant and what words they used in the trial
@@ -830,16 +837,17 @@ def sentTesting(primOrder):
             'suj':sujet,
             'trial':i,
             'image':pic,
-            'agent':agent,
-            'patient':patient,
+            'agent':engAgt,    # Intended nonce agt  
+            'patient':engPat,# Intended nonce pat
             'response':responses,
             'nonPartAgt':nAgt, # Agent used by participant (in case different from intended in stim)
             'nonPartPat':nPat, # Patient used by participant (in case different from intended in stim)
-            'verb':verb,
+            'verb':engVerb,        
+            'expNvrb':verb,# Nonce verb
             'engPartAgt': respAgt, # English agent used by part
             'engPartPat': respPat, # English pat used by part
-            'expNAgt':nonceagt, # Intended nonce agt
-            'expNPat':noncepat, # Intended nonce pat
+            'expNAgt':agent, 
+            'expNPat':patient, 
             'responseOrder':wordOrd, # Word order used by participant
             'dominantOrder':domOrder
         }
@@ -847,6 +855,37 @@ def sentTesting(primOrder):
         stestingDf = stestingDf.append(trial)
     
     return
+
+##########
+# Interaction phase
+
+# def participantPrompt():
+
+    
+#     pic, engAgt, engVerb, engPat = sentTrials(i)
+#     nonceverb = noncedict[verb]     # Nonce verb
+#     patient = sentencelist[2] 
+#     imagePath = pathToImages+pic+'.jpg'
+#     responses = typingTrial(win, imagePath, nonceverb)
+#     correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
+#     respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
+#     # Get word order used by participant and what words they used in the trial
+    
+#     if wordOrd == primOrder:
+#         domOrder = 0
+#     else:
+#         domOrder = 1
+
+
+#     dico = {
+#     'suj':sujet,
+#     'image':pic
+#     }
+# def computerPromt():
+
+
+# def initializeInteract(primOrder):
+
 
 ##########
 # START UP PARAMETERS
@@ -951,6 +990,7 @@ stestingCols = [
     'response',
     'nonPartAgt',
     'nonPartPat',
+    'expNvrb',
     'engPartAgt',
     'engPartPat',
     'expNAgt',
@@ -994,17 +1034,17 @@ Remember that the words in this language are:
 
 instructions(hello)
 
-doNounTraining(sujet)
-ntrainingDf.to_csv(nounTrainingFileName, index=None)
+# doNounTraining(sujet)
+# ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
-instructions(between_nouns)
+# instructions(between_nouns)
 
-doNounTesting(sujet)
-ntestingDf.to_csv(nounTestingFileName, index = None)
+# doNounTesting(sujet)
+# ntestingDf.to_csv(nounTestingFileName, index = None)
 
 
 
-#doSentTraining('OSV')
+doSentTraining('OSV')
 strainingDf.to_csv(sentTrainingFileName, index=None)
 
 
