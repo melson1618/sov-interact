@@ -366,9 +366,6 @@ def doNounTraining(sujet, repeat = 0):
 
 def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
 
-    # wait 500 ms at beginning of trial
-    #core.wait(0.5)
-    
     # Get the correct nonce word and an incorrect one for the testing
     target = noun # Correct word that matches image
     miss = wrongNoun # Random nonce word that does not match image, but is one of the nouns from the nonce language
@@ -1087,15 +1084,14 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
     eng.setAutoDraw(True)
     win.flip()
 
-    #core.wait(1)
     clicked = False
 
     while not clicked:
         for n, image in enumerate(matcher_images):
             if mouse.isPressedIn(image):
-                # then break the loop
+
                 clicked = True
-                # and get the response
+
                 responseImage = n
     win.flip()
 
@@ -1301,6 +1297,7 @@ comptpromptCols = [
     'correct'
 ]
 compPromptDf = pd.DataFrame(columns=comptpromptCols)
+
 ############
 # Instructions/dialogue
 
@@ -1346,26 +1343,29 @@ thankyou_complete = u'''Congratulations! You've reached the end of the experimen
 # RUN THE EXPERIMENT
 
 
-initializeInteract('OSV')
-partPromptDf.to_csv(partPromptFileName, index=None)
-compPromptDf.to_csv(compPromptFileName, index=None)
-# instructions(hello)
+#initializeInteract('OSV')
 
-# doNounTraining(sujet)
-# ntrainingDf.to_csv(nounTrainingFileName, index=None)
+instructions(hello)
 
-# instructions(between_nouns)
+doNounTraining(sujet)
+ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
-# doNounTesting(sujet)
-# ntestingDf.to_csv(nounTestingFileName, index = None)
+instructions(between_nouns)
+
+doNounTesting(sujet)
+ntestingDf.to_csv(nounTestingFileName, index = None)
 
 
 
 # #doSentTraining('OSV')
-# strainingDf.to_csv(sentTrainingFileName, index=None)
+strainingDf.to_csv(sentTrainingFileName, index=None)
 
 
 
 # #sentTesting('OSV')
-# stestingDf.to_csv(sentTestingFileName, index=None)
+stestingDf.to_csv(sentTestingFileName, index=None)
+
+partPromptDf.to_csv(partPromptFileName, index=None)
+
+compPromptDf.to_csv(compPromptFileName, index=None)
 core.quit()
