@@ -10,10 +10,19 @@ import numpy as np
 ##########
 #Dummy variables, change later
 
-sujet= 'OSV001'
+sujet= 'OOV001'
 
 ##########
 # FUNCTIONS
+
+def getPartOrder(sujet):
+    partOrder = sujet[0:2]
+
+    if partOrder == 'SS':
+        primOrder = 'SOV'
+    else:
+        primOrder = 'OSV'
+    return primOrder
 
 def instructions(x):
     'Display instructions on screen and wait for participant to press button'
@@ -41,6 +50,27 @@ def findStimImage():
             nounpics.append(pic)
     return sentencepics, nounpics
 
+def sortVerbImages():
+    '''Sort the images based on the verb, this is used later in the cpImages function, which selects three additional images
+    to be presented during the computer-director trials of the interaction phase. Image names are saved without file extensions.'''
+    punchlst = []
+    pointlst = []
+    kicklst = []
+    shootlst = []
+    for p in sentencepics:
+        sentlst = p.split('_')
+        pagt = sentlst[0]
+        pvrb = sentlst[1]
+        ppat = sentlst[2]
+        if pvrb == 'punch':
+            punchlst.append(p)
+        elif pvrb == 'point':
+            pointlst.append(p)
+        elif pvrb == 'kick':
+            kicklst.append(p)
+        else:
+            shootlst.append(p)
+    return punchlst, pointlst, kicklst, shootlst 
 
 def participantLang():
     '''Create language for participant from list of nonce words and English words/grammatical roles, probably need to save
@@ -181,7 +211,6 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     for stim in stims:
         playStim(stim)
 
-    
     #core.wait(0.5)
     eng = visual.TextStim( #text that gets presented
         win,
@@ -194,8 +223,6 @@ def initializeTrial(displayText, buttonNames, buttonTexts, pic, audioStim):
     eng.draw()
     win.flip()
 
-
-    
     return mouse, buttons, eng, picObj
 
 
@@ -454,7 +481,7 @@ def doNounTesting(sujet, repeat = 0):
         }
         trial = pd.DataFrame([dico])
         ntestingDf = ntestingDf.append(trial)
-    print num_correct
+    
     checkLearning(num_correct, sujet, repeat) # Check to see if participant got at least 75% correct
     return
 
@@ -473,17 +500,16 @@ def checkLearning(numCorrect, suj, repeat):
         instructions(teststatement)
         doNounTesting(suj, repeat = 1)
     else:
-        # if 'OSV' in suj:        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
-        #     instructions(sentences)
-        #     doSentTraining('OSV')
-        #     instructions(sentence_test)
-        #     sentTesting('OSV')
-        # else:
-        #     instructions(sentences)
-        #     doSentTraining('SOV')
-        #     instructions(sentence_test)
-        #     sentTesting('SOV')
-        pass
+        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
+            instructions(sentences)
+            doSentTraining(primOrder)
+            instructions(sentence_test)
+            sentTesting(primOrder)
+            instructions(interaction_phase)
+            t = random.randint(1,5)
+            core.wait(t)
+            initializeInteract(primOrder)
+            instructions(thankyou_complete)
     return
 
 def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
@@ -595,12 +621,7 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
         orderlist = ['OSV']*18 + ['SOV']*42
     random.shuffle(orderlist)
 
-    #random.shuffle(sentencepics)
-
     while i < 5:
-        #pic = sentencepics[i]
-        #name, file = pic.split('.')
-        #sentencelist = name.split('_')
         pic, engAgt, engVerb, engPat = sentTrials(i)
         agent = noncedict[engAgt]
         verb = noncedict[engVerb]
@@ -694,14 +715,14 @@ def spellcheckWords(str):
     possibleWords = ['melnog', 'bloffen', 'neegoul', 'vaneep', 'klamen', 'slegam']#list containing the correct lexicon. You can also pass it as an argument tot he function depending on how variable this list is. It is the same across, I would leave it here.
     correctedWords = [spellcheckWord(word,possibleWords) for word in input]
     #output = ' '.join(correctedWords)# turn back into a string
-    print correctedWords
+    #print correctedWords
     return correctedWords
 
 
 def typingTrial(win,image_path,verb):
     text=""
     shifton=0 # allows caps and ?'s etc
-    instructions = visual.TextStim(win, text=typingInstructions,
+    instructions = visual.TextStim(win, text=typing_instructions,
         color="Black",units='norm',pos=[0,0.75], wrapWidth = 1.5, height=0.05)
     #you do not need the above line if you do not have any text displayed along with the image
     imageStim=visual.ImageStim(win, image=image_path, units='norm',pos=[0,0],autoLog=True)
@@ -792,7 +813,7 @@ def whichWords(correctNouns, agt, pat):
 
     noun1 = correctNouns[0]
     noun2 = correctNouns[1]
-    reverseNDict = reverseDict()
+    
     if agt == noun1 or pat == noun2:
         worder = 'SOV'
         nAgt = noun1 #save nonce response
@@ -805,6 +826,12 @@ def whichWords(correctNouns, agt, pat):
         nPat = noun1
         respAgt = reverseNDict[noun2]
         respPat = reverseNDict[noun1]
+    else:
+        nAgt = noun1
+        nPat = noun2
+        worder = 'NA'
+        respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
+        respPat = reverseNDict[noun2]
        
     return respAgt, respPat, nAgt, nPat, worder
 
@@ -815,9 +842,7 @@ def sentTesting(primOrder):
     random.shuffle(sentencepics)
     #i = 0
     for i in range(5):
-        #name = sentencepics[i]
-        #pic, file = name.split('.')
-        #sentencelist = pic.split('_')
+
         pic, engAgt, engVerb, engPat = sentTrials(i)
         agent = noncedict[engAgt]      # Target nonce agent
         verb = noncedict[engVerb]       # Nonce verb
@@ -859,32 +884,272 @@ def sentTesting(primOrder):
 ##########
 # Interaction phase
 
-# def participantPrompt():
-
+def participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder):
+# Run interaction phase where participant is the director
     
-#     pic, engAgt, engVerb, engPat = sentTrials(i)
-#     nonceverb = noncedict[verb]     # Nonce verb
-#     patient = sentencelist[2] 
-#     imagePath = pathToImages+pic+'.jpg'
-#     responses = typingTrial(win, imagePath, nonceverb)
-#     correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
-#     respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
-#     # Get word order used by participant and what words they used in the trial
+    global partPromptDf
+
+    agent = noncedict[engAgt]      # Target nonce agent
+    verb = noncedict[engVerb]       # Nonce verb
+    patient = noncedict[engPat]     # Target nonce patient 
+    imagePath = pathToImages+pic+'.jpg'
+    print agent, patient 
+    responses = typingTrial(win, imagePath, verb)
+    correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
+    respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
+    # Get word order used by participant and what words they used in the trial
     
-#     if wordOrd == primOrder:
-#         domOrder = 0
-#     else:
-#         domOrder = 1
+    successCount, compGuess = computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pic)
+    if wordOrd == primOrder:
+        domOrder = 0
+    else:
+        domOrder = 1
+
+    dico = {
+        'suj':sujet,
+        'trial':i,
+        'image':pic,
+        'agent':engAgt,    # Eng agt  
+        'patient':engPat,# Eng pat
+        'response':responses,
+        'nonPartAgt':nAgt, # Agent used by participant (in case different from intended in stim)
+        'nonPartPat':nPat, # Patient used by participant (in case different from intended in stim)
+        'verb':engVerb,        
+        'expNvrb':verb,# Nonce verb
+        'engPartAgt': respAgt, # English agent used by part
+        'engPartPat': respPat, # English pat used by part
+        'expNAgt':agent, # Intended nonce agent
+        'expNPat':patient, # Intended nonce patient
+        'responseOrder':wordOrd, # Word order used by participant
+        'dominantOrder':domOrder,
+        'correct':successCount,
+        'partner guess':compGuess
+    }
+    trial = pd.DataFrame([dico])
+    partPromptDf = partPromptDf.append(trial)
+
+    return
+
+def feedbackDisplay(x, pic = None):
+    '''Give participant feedback based on success or failure of computer to recognize the correct image'''
+    win.flip()
+    t = random.randint(1,5) # Wait between 1 and 5 seconds before continuing and showing the feedback
+    core.wait(t)
+    visual.TextStim(win, text=x, color="black", wrapWidth=700, pos = (0,200)).draw()
+    #win.flip()
+    if pic != None:
+        picObj = visual.ImageStim(
+            win,
+            image=pathToImages+pic+'.jpg',
+            pos = (0, 0)
+        )
+        picObj.setAutoDraw(True)
+        picObj.draw()
+        picObj.setAutoDraw(False)
+    else:
+        pass
+
+    win.flip()
+    event.waitKeys()
+    
+    win.flip()
+
+def computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pic):
+    '''Take participant input and check to see if the words match based on trial image, nonce language, 
+    and strict minority word order'''
+
+    success = 0
+
+    if nAgt == noncedict[engAgt] and nPat == noncedict[engPat]: # Correct if words and order match
+        if wordOrd == computerOrder:
+            success += 1
+            feedbackDisplay(comm_success)
+        else:                                               # If words match, but order is incorrect
+            success += 0
+            pic = engPat+'_'+engVerb+'_'+engAgt
+            feedbackDisplay(comm_failed, pic)
+    else:
+        success += 0
+        if wordOrd == computerOrder:
+            compAgt = reverseNDict[nAgt]
+            compPat = reverseNDict[nPat]
+            pic = compAgt+'_'+engVerb+'_'+compPat
+            feedbackDisplay(comm_failed, pic)
+        else:
+            compAgt = reverseNDict[nPat]
+            compPat = reverseNDict[nAgt]
+            pic = compAgt+'_'+engVerb+'_'+compPat
+            feedbackDisplay(comm_failed, pic)
+    return success, pic 
+
+def theOtherOnes(trialpics, engAgt, engPat):
+#Sort images based on verb, agt and pat, generate lists for random selection of alternate stims
+    agtother = []
+    patother = []
+
+    for p in trialpics:
+        p, ext = p.split('.')
+        tempP = p.split('_')
+        agt = tempP[0]
+        pat = tempP[2]
+        if agt == engPat and pat == engAgt:
+            opposite = p
+        elif agt == engAgt and pat != engPat:
+            agtother.append(p)
+        elif pat == engPat and agt != engAgt:
+            patother.append(p)
+    return agtother, patother, opposite
 
 
-#     dico = {
-#     'suj':sujet,
-#     'image':pic
-#     }
-# def computerPromt():
+def cpImages(engAgt, engPat, engVerb, pic):
+
+    if engVerb == 'punch':          # Select correct list of stims based on verb
+        trialpics = punchlst
+    elif engVerb == 'point':
+        trialpics = pointlst
+    elif engVerb == 'kick':
+        trialpics = kicklst
+    else:
+        trialpics = shootlst
+    agtother, patother, opposite = theOtherOnes(trialpics, engAgt, engPat)
+
+    trialImages = []
+    
+    trialImages.append(pic)         # Correct image
+    trialImages.append(opposite)    # Correct elements, agt and pat reversed
+    alt1 = random.choice(agtother)  # Random pic that has same verb and agt, but diff pat
+    trialImages.append(alt1)
+    alt2 = random.choice(patother)  # Random pic that has same verb and pat, but diff agt
+    trialImages.append(alt2)
+    return trialImages              # List of 4 pics for trial
 
 
-# def initializeInteract(primOrder):
+def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
+
+    global compPromptDf
+
+    agent = noncedict[engAgt]
+    verb = noncedict[engVerb]
+    patient = noncedict[engPat]
+    # Check assigned dominant word order for participant and use the opposite to generate prompt
+    if primOrder == 'OSV':                      
+        promptSent = agent+' '+patient+' '+verb
+    else:
+        promptSent = patient+' '+agent+' '+verb
+    trialStims = cpImages(engAgt, engPat, engVerb, pic) # Get 4 images for the trial
+
+    random.shuffle(trialStims) # List of images for the trial, shuffle to randomize location on the screen
+    image1 = trialStims[0]
+    image2 = trialStims[1]
+    image3 = trialStims[2]
+    image4 = trialStims[3]
+    
+    visStims = [image1, image2, image3, image4]
+
+    mouse.setVisible(True)
+    #core.wait(1.0)
+    win.flip()
+    core.wait(1)
+    pic1 = visual.ImageStim(
+            win,
+            image = pathToImages+image1+'.jpg',
+            pos = (-300, -150)
+    )
+    pic2 = visual.ImageStim(
+            win,
+            image = pathToImages+image2+'.jpg',
+            pos = (-300, 150)
+    )
+    pic3 = visual.ImageStim(
+            win,
+            image = pathToImages+image3+'.jpg',
+            pos = (300, 150)
+    )
+    pic4 = visual.ImageStim(
+            win,
+            image = pathToImages+image4+'.jpg',
+            pos = (300, -150)
+    )
+
+    matcher_images = [pic1, pic4, pic2, pic3]
+
+    for image in matcher_images:
+        image.setAutoDraw(True)
+
+    win.flip()
+    eng = visual.TextStim( #text that gets presented
+        win,
+        text=promptSent,
+        color='black',
+        pos=(0,400),
+        height=36
+    )
+    eng.setAutoDraw(True)
+    win.flip()
+
+    #core.wait(1)
+    clicked = False
+
+    while not clicked:
+        for n, image in enumerate(matcher_images):
+            if mouse.isPressedIn(image):
+                # then break the loop
+                clicked = True
+                # and get the response
+                responseImage = n
+    win.flip()
+
+    eng.setAutoDraw(False)
+    for image in matcher_images:
+        image.setAutoDraw(False)
+    win.flip()
+
+    partGuess = visStims[n]
+    print partGuess
+    successCount = participantFeedback(partGuess, pic) # Check if participant response is correct
+
+    dico = {
+        'suj':sujet,
+        'trial':i,
+        'prompt':promptSent,
+        'image':pic,
+        'part guess':partGuess,
+        'correct':successCount
+    }
+    trial = pd.DataFrame([dico])
+    compPromptDf = compPromptDf.append(trial)
+
+    return
+
+def participantFeedback(partGuess, pic):
+
+    success = 0
+    if partGuess == pic:
+        success += 1
+        feedbackDisplay(right_choice)
+    else:
+        success += 0
+        feedbackDisplay(wrong_choice, pic)
+    return success 
+
+def initializeInteract(primOrder):
+
+    i = 0
+    if primOrder == 'OSV':
+        computerOrder = 'SOV'
+    else:
+        computerOrder = 'OSV'
+
+    for i in range(10):
+        pic, engAgt, engVerb, engPat = sentTrials(i)
+        if i%2 == 0:
+            # Run trial with participant as director
+            participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
+        else:
+            # Run trial with computer as director
+            computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i)
+        i += 1
+    return
 
 
 ##########
@@ -911,11 +1176,14 @@ for f in allFiles:
     if p.match(f):
         images.append(f)
 
+primOrder = getPartOrder(sujet)
 sentencepics, nounpics = findStimImage()
 noncedict, nouns = simplifyThatDictionary()
+punchlst, pointlst, kicklst, shootlst = sortVerbImages()
+reverseNDict = reverseDict()
 
 win = visual.Window(
-    [800,800],
+    [1200,1000],
     color="white",
     colorSpace="rgb",
     units="pix",
@@ -1000,6 +1268,39 @@ stestingCols = [
 ]
 stestingDf = pd.DataFrame(columns=stestingCols)
 
+partPromptFileName = '../data/partPrompt/{}.csv'.format(sujet)
+partpromtCols = [
+    'suj',
+    'trial',
+    'image',
+    'agent',    # Eng agt  
+    'patient',# Eng pat
+    'response',
+    'nonPartAgt', # Agent used by participant (in case different from intended in stim)
+    'nonPartPat', # Patient used by participant (in case different from intended in stim)
+    'verb',        
+    'expNvrb',# Nonce verb
+    'engPartAgt', # English agent used by part
+    'engPartPat', # English pat used by part
+    'expNAgt', # Intended nonce agent
+    'expNPat', # Intended nonce patient
+    'responseOrder', # Word order used by participant
+    'dominantOrder',
+    'correct',
+    'partner guess'
+]
+partPromptDf = pd.DataFrame(columns=partpromtCols)
+
+compPromptFileName = '../data/compPrompt/{}.csv'.format(sujet)
+comptpromptCols = [
+    'suj',
+    'trial',
+    'prompt',
+    'image',
+    'part guess',
+    'correct'
+]
+compPromptDf = pd.DataFrame(columns=comptpromptCols)
 ############
 # Instructions/dialogue
 
@@ -1020,19 +1321,35 @@ tryagain = u'''That was really good, but let's go over the words one more time''
 
 teststatement = u'''Nice job! Just one more short test and we'll move on to some sentences!'''
 
-sentences = u'''Now that you've learned the words, let's try some sentences. In this section you'll be shown an image and our native speaker will describe it. You're job is to match what you see and the speaker's description to the phrases presented at the bottom of the screen.'''
+sentences = u'''Now that you've learned the words, let's try some sentences. In this section you'll be shown a scene and our native speaker will describe it. You're job is to match what you see and the speaker's description to the phrases presented at the bottom of the screen.'''
 
 sentence_test = u'''For this part, you're task is to describe the scene using the nouns you've learned. The appropriate verb will be presented at the bottom of the screen under the image.'''
 
 thanksfornothing = u'''Thank you for participating, please let the experimenter know that you have finished'''
 
-typingInstructions = u'''For the picture below, please type in the two words to describe the action taking place.
-Remember that the words in this language are:
-\nmelnog, slegam, vaneep, bloffen, neegoul, and klamen'''
+typing_instructions = u'''For the picture below, please type in the two words to describe the action taking place.'''
+
+comm_success = u'''Well done! You're partner chose the correct scene!'''
+
+comm_failed = u'''Oops, not quite, your partner did not understand your description. This is what they thought you meant:'''
+
+right_choice = u'''Good job! You chose the correct scene!'''
+
+wrong_choice = u'''Oh no! You did not understand your partner's description. This was the correct scene:
+\n Press the spacebar to continue'''
+
+interaction_phase = u'''Congratulations on finishing the testing phase! For this next part you will be using the language you just learned to communicate with a partner. For half of the trials you will be shown a picture and asked to complete the description, which your partner will use to choose the correct scene. For the other half of the trials your task is to choose the correct scene based on your partner's description.
+\nPlease wait while we match you with your partner.'''
+
+thankyou_complete = u'''Congratulations! You've reached the end of the experiment! Please let the researcher know that you have finished.'''
 ############
 # RUN THE EXPERIMENT
 
-instructions(hello)
+
+initializeInteract('OSV')
+partPromptDf.to_csv(partPromptFileName, index=None)
+compPromptDf.to_csv(compPromptFileName, index=None)
+# instructions(hello)
 
 # doNounTraining(sujet)
 # ntrainingDf.to_csv(nounTrainingFileName, index=None)
@@ -1044,11 +1361,11 @@ instructions(hello)
 
 
 
-doSentTraining('OSV')
-strainingDf.to_csv(sentTrainingFileName, index=None)
+# #doSentTraining('OSV')
+# strainingDf.to_csv(sentTrainingFileName, index=None)
 
 
 
-#sentTesting('OSV')
-stestingDf.to_csv(sentTestingFileName, index=None)
+# #sentTesting('OSV')
+# stestingDf.to_csv(sentTestingFileName, index=None)
 core.quit()
