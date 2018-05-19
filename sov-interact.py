@@ -10,7 +10,7 @@ import numpy as np
 ##########
 #Dummy variables, change later
 
-sujet= 'OOV001'
+sujet= 'SSV001'
 
 ##########
 # FUNCTIONS
@@ -490,14 +490,6 @@ def checkLearning(numCorrect, suj, repeat):
         if numCorrect < 9:
             instructions(thanksfornothing)
         else:
-            pass
-    elif numCorrect < 9: # If they got less than 75% correct, repeat training
-        instructions(tryagain)
-        doNounTraining(suj, repeat = 1)
-        instructions(teststatement)
-        doNounTesting(suj, repeat = 1)
-    else:
-        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
             instructions(sentences)
             doSentTraining(primOrder)
             instructions(sentence_test)
@@ -507,6 +499,22 @@ def checkLearning(numCorrect, suj, repeat):
             core.wait(t)
             initializeInteract(primOrder)
             instructions(thankyou_complete)
+    elif numCorrect < 9: # If they got less than 75% correct, repeat training
+        instructions(tryagain)
+        doNounTraining(suj, repeat = 1)
+        instructions(teststatement)
+        doNounTesting(suj, repeat = 1)
+    else:
+        # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
+        instructions(sentences)
+        doSentTraining(primOrder)
+        instructions(sentence_test)
+        sentTesting(primOrder)
+        instructions(interaction_phase)
+        t = random.randint(1,5)
+        core.wait(t)
+        initializeInteract(primOrder)
+        instructions(thankyou_complete)
     return
 
 def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
