@@ -10,15 +10,15 @@ import numpy as np
 ##########
 #Dummy variables, change later
 
-sujet= 'SSV001'
+sujet= 'S_001'
 
 ##########
 # FUNCTIONS
 
 def getPartOrder(sujet):
-    partOrder = sujet[0:2]
+    partOrder = sujet[0:1]
 
-    if partOrder == 'SS':
+    if partOrder == 'S':
         primOrder = 'SOV'
     else:
         primOrder = 'OSV'
@@ -315,7 +315,7 @@ def doNounTraining(sujet, repeat = 0):
     # ntrainingDf will be updated by the function, so must be global
     global ntrainingDf
     
-    numberBlocks = 2
+    numberBlocks = 5
     trainingNouns = []
     for block in range(numberBlocks):
         blockNouns = list(np.copy(nouns)) # nouns is generated in simplifyThatDictionary, and is a list of Eng nouns 
@@ -323,11 +323,10 @@ def doNounTraining(sujet, repeat = 0):
         random.shuffle(blockNouns)
         trainingNouns.append(blockNouns)
 
-    trainingNouns = trainingNouns[0] + trainingNouns[1] 
-    #+ trainingNouns[2]+trainingNouns[3]+trainingNouns[4]
+    trainingNouns = trainingNouns[0] + trainingNouns[1] + trainingNouns[2]+trainingNouns[3]+trainingNouns[4]
 
     i = 0 # because we need to repeat incorrect trials, must have own counter
-    while i < 12: # Iterate through entire noun list once
+    while i < 30: # Iterate through entire noun list once
         engNoun = trainingNouns[i]
         nounWord = noncedict[engNoun]
         otherWord = random.choice(nouns)
@@ -382,9 +381,6 @@ def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
         pic = engNoun,
         audioStim = ['none']
     )
-
-    # wait 500 ms after sound
-    #core.wait(0.5)
 
     consBisText = "...click on the word that matches the image..."
     consBis = visual.TextStim(
@@ -453,8 +449,6 @@ def doNounTesting(sujet, repeat = 0):
     testNouns = testNouns[0] + testNouns[1] # don't do this normally 
     for n,engNoun in enumerate(testNouns): # Show each noun once in each testing block
         nounWord = noncedict[engNoun]
-        # otherWord = random.choice(nouns)
-        # otherNonce = noncedict[otherWord] # Randomly choose a word from the nonce list to be the alternative button
         wordsDif = False
         while not wordsDif:
             otherWord, otherNonce = buttonWordsDif()
@@ -626,7 +620,7 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
         orderlist = ['OSV']*18 + ['SOV']*42
     random.shuffle(orderlist)
 
-    while i < 5:
+    while i < 60:
         pic, engAgt, engVerb, engPat = sentTrials(i)
         agent = noncedict[engAgt]
         verb = noncedict[engVerb]
@@ -846,7 +840,7 @@ def sentTesting(primOrder):
     
     random.shuffle(sentencepics)
     #i = 0
-    for i in range(5):
+    for i in range(60):
 
         pic, engAgt, engVerb, engPat = sentTrials(i)
         agent = noncedict[engAgt]      # Target nonce agent
@@ -1144,7 +1138,7 @@ def initializeInteract(primOrder):
     else:
         computerOrder = 'OSV'
 
-    for i in range(10):
+    for i in range(60):
         pic, engAgt, engVerb, engPat = sentTrials(i)
         if i%2 == 0:
             # Run trial with participant as director
