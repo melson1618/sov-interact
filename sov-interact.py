@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from psychopy import core, visual, event, sound
+from psychopy import core, gui, misc, data, visual, event, sound
 import os, re, random
 import pickle
 import numpy as np
@@ -81,7 +81,7 @@ def participantLang():
     random.shuffle(engdictKeys) # Randomize language for each participant
     random.shuffle(nonce_nouns)
     random.shuffle(nonce_verbs)
-    for i in range(10):
+    for i in range(len(engdictKeys)):
         #print (i, used_words)
         if engdict[engdictKeys[i]] == 'noun':
             nn=nonce_nouns.pop() # .pop() removes the first item in the list and puts it in nn.
@@ -315,7 +315,7 @@ def doNounTraining(sujet, repeat = 0):
     # ntrainingDf will be updated by the function, so must be global
     global ntrainingDf
     
-    numberBlocks = 5
+    numberBlocks = 6
     trainingNouns = []
     for block in range(numberBlocks):
         blockNouns = list(np.copy(nouns)) # nouns is generated in simplifyThatDictionary, and is a list of Eng nouns 
@@ -323,10 +323,10 @@ def doNounTraining(sujet, repeat = 0):
         random.shuffle(blockNouns)
         trainingNouns.append(blockNouns)
 
-    trainingNouns = trainingNouns[0] + trainingNouns[1] + trainingNouns[2]+trainingNouns[3]+trainingNouns[4]
+    trainingNouns = trainingNouns[0] + trainingNouns[1] + trainingNouns[2]+trainingNouns[3]+trainingNouns[4]+trainingNouns[5]
 
     i = 0 # because we need to repeat incorrect trials, must have own counter
-    while i < 30: # Iterate through entire noun list once
+    while i < 24: # Iterate through entire noun list once
         engNoun = trainingNouns[i]
         nounWord = noncedict[engNoun]
         otherWord = random.choice(nouns)
@@ -438,7 +438,7 @@ def doNounTesting(sujet, repeat = 0):
     global ntestingDf
 
     num_correct = 0
-    numberBlocks = 2
+    numberBlocks = 3
     testNouns = []
     for block in range(numberBlocks):
         blockNouns = list(np.copy(nouns)) # nouns is generated in simplifyThatDictionary, and is a list of Eng nouns 
@@ -446,7 +446,7 @@ def doNounTesting(sujet, repeat = 0):
         random.shuffle(blockNouns)
         testNouns.append(blockNouns)
 
-    testNouns = testNouns[0] + testNouns[1] # don't do this normally 
+    testNouns = testNouns[0] + testNouns[1] + testNouns[2]# don't do this normally 
     for n,engNoun in enumerate(testNouns): # Show each noun once in each testing block
         nounWord = noncedict[engNoun]
         wordsDif = False
@@ -473,7 +473,51 @@ def doNounTesting(sujet, repeat = 0):
         trial = pd.DataFrame([dico])
         ntestingDf = ntestingDf.append(trial)
     
-    checkLearning(num_correct, sujet, repeat) # Check to see if participant got at least 75% correct
+    return
+
+def typeTheNouns(suj, repeat=0):
+
+    global ntypingDf
+
+    num_correct = 0
+    #corrent = 0
+    numberBlocks = 3
+    testNouns = []
+    for block in range(numberBlocks):
+        blockNouns = list(np.copy(nouns)) # nouns is generated in simplifyThatDictionary, and is a list of Eng nouns 
+        
+        random.shuffle(blockNouns)
+        testNouns.append(blockNouns)
+
+    testNouns = testNouns[0] + testNouns[1] + testNouns[2]# don't do this normally 
+    for n,engNoun in enumerate(testNouns): # Show each noun once in each testing block
+        nounWord = noncedict[engNoun]
+        print nounWord
+        imagePath = pathToImages+engNoun+'.jpg'
+        response = typingTrial(win, imagePath)
+        correctNoun = processResponses(response) 
+        #print 'This is correctNoun: ', correctNoun
+        if correctNoun[0] == nounWord:
+            correct = 1
+            num_correct += 1
+        else:
+            correct = 0
+            num_correct += 0
+
+        dico = {
+            'suj':sujet,
+            'trial':n,
+            'correct_noun':nounWord,
+            'response':response,
+            'image':engNoun,
+            'correct':correct,
+            'total_correct':num_correct,
+            'iteration':repeat 
+        }
+        trial = pd.DataFrame([dico])
+        ntypingDf = ntypingDf.append(trial)
+
+    #checkLearning(num_correct, sujet, repeat) # Check to see if participant got at least 75% correct
     return
 
 def checkLearning(numCorrect, suj, repeat):
@@ -498,6 +542,9 @@ def checkLearning(numCorrect, suj, repeat):
         doNounTraining(suj, repeat = 1)
         instructions(teststatement)
         doNounTesting(suj, repeat = 1)
+        instructions(type_nouns)
+        typeTheNouns(suj, repeat=1)
+
     else:
         # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
         instructions(sentences)
@@ -508,6 +555,8 @@ def checkLearning(numCorrect, suj, repeat):
         t = random.randint(1,5)
         core.wait(t)
         initializeInteract(primOrder)
+        instructions(last_test)
+        sentTesting(primOrder)
         instructions(thankyou_complete)
     return
 
@@ -711,14 +760,14 @@ def spellcheckWords(str):
     
     str = str.lower() # check to make sure things are lower case
     input = str.split(); # split into array of words - not specifying a seperator means that multipe whitespace is treated as one, empty whitespace is ignored
-    possibleWords = ['melnog', 'bloffen', 'neegoul', 'vaneep', 'klamen', 'slegam']#list containing the correct lexicon. You can also pass it as an argument tot he function depending on how variable this list is. It is the same across, I would leave it here.
+    possibleWords = ['melnog', 'bloffen', 'vaneep', 'klamen']#list containing the correct lexicon. You can also pass it as an argument tot he function depending on how variable this list is. It is the same across, I would leave it here.
     correctedWords = [spellcheckWord(word,possibleWords) for word in input]
     #output = ' '.join(correctedWords)# turn back into a string
     #print correctedWords
     return correctedWords
 
 
-def typingTrial(win,image_path,verb):
+def typingTrial(win,image_path,verb=None):
     text=""
     shifton=0 # allows caps and ?'s etc
     instructions = visual.TextStim(win, text=typing_instructions,
@@ -810,31 +859,38 @@ def processResponses(responsestr):
 def whichWords(correctNouns, agt, pat):
     '''Check what nouns the participant used, determine word order, and return all of that juicy data'''
 
-    noun1 = correctNouns[0]
-    noun2 = correctNouns[1]
-    
-    if agt == noun1 or pat == noun2:
-        worder = 'SOV'
-        nAgt = noun1 #save nonce response
-        nPat = noun2
-        respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
-        respPat = reverseNDict[noun2]
-    elif agt == noun2 or pat == noun1:
-        worder = 'OSV'
-        nAgt = noun2
-        nPat = noun1
-        respAgt = reverseNDict[noun2]
-        respPat = reverseNDict[noun1]
+    if len(correctNouns) < 2: # Incase participant only types one word or nothing
+        worder = 'NA' 
+        nAgt = 'NA'
+        nPat = 'NA'
+        respAgt = 'NA'
+        respPat = 'NA'
     else:
-        nAgt = noun1
-        nPat = noun2
-        worder = 'NA'
-        respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
-        respPat = reverseNDict[noun2]
+        noun1 = correctNouns[0]
+        noun2 = correctNouns[1]
+        
+        if agt == noun1 or pat == noun2:
+            worder = 'SOV'
+            nAgt = noun1 #save nonce response
+            nPat = noun2
+            respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
+            respPat = reverseNDict[noun2]
+        elif agt == noun2 or pat == noun1:
+            worder = 'OSV'
+            nAgt = noun2
+            nPat = noun1
+            respAgt = reverseNDict[noun2]
+            respPat = reverseNDict[noun1]
+        else:
+            nAgt = noun1
+            nPat = noun2
+            worder = 'NA'
+            respAgt = reverseNDict[noun1] #save the English equivalent of the participants response 
+            respPat = reverseNDict[noun2]
        
     return respAgt, respPat, nAgt, nPat, worder
 
-def sentTesting(primOrder):
+def sentTesting(primOrder,test = 'Pre'):
     
     global stestingDf
     
@@ -873,7 +929,8 @@ def sentTesting(primOrder):
             'expNAgt':agent, 
             'expNPat':patient, 
             'responseOrder':wordOrd, # Word order used by participant
-            'dominantOrder':domOrder
+            'dominantOrder':domOrder,
+            'pre/post':test
         }
         trial = pd.DataFrame([dico])
         stestingDf = stestingDf.append(trial)
@@ -1036,7 +1093,7 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
     else:
         promptSent = patient+' '+agent+' '+verb
     trialStims = cpImages(engAgt, engPat, engVerb, pic) # Get 4 images for the trial
-
+    print pic
     random.shuffle(trialStims) # List of images for the trial, shuffle to randomize location on the screen
     image1 = trialStims[0]
     image2 = trialStims[1]
@@ -1044,7 +1101,7 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
     image4 = trialStims[3]
     
     visStims = [image1, image2, image3, image4]
-
+    print visStims
     mouse.setVisible(True)
     #core.wait(1.0)
     win.flip()
@@ -1070,7 +1127,7 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
             pos = (300, -150)
     )
 
-    matcher_images = [pic1, pic4, pic2, pic3]
+    matcher_images = [pic1, pic2, pic3, pic4]
 
     for image in matcher_images:
         image.setAutoDraw(True)
@@ -1095,6 +1152,7 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
                 clicked = True
 
                 responseImage = n
+
     win.flip()
 
     eng.setAutoDraw(False)
@@ -1102,8 +1160,8 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
         image.setAutoDraw(False)
     win.flip()
 
-    partGuess = visStims[n]
-    print partGuess
+    partGuess = visStims[responseImage]
+    print partGuess, responseImage
     successCount = participantFeedback(partGuess, pic) # Check if participant response is correct
 
     dico = {
@@ -1138,28 +1196,62 @@ def initializeInteract(primOrder):
     else:
         computerOrder = 'OSV'
 
-    for i in range(60):
+    for i in range(48):
         pic, engAgt, engVerb, engPat = sentTrials(i)
-        if i%2 == 0:
-            # Run trial with participant as director
-            participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
-        else:
+        # if i%2 == 0:
+        #     # Run trial with participant as director
+        #     participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
+        # else:
             # Run trial with computer as director
-            computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i)
+        computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i)
         i += 1
     return
 
 
-##########
+################
+# RUN PARAMETERS
+
+# pec = {'Full screen':'y'}
+# dlg = gui.DlgFromDict(pec, title=u'Démarrage')
+# if dlg.OK:
+#     if pec['Full screen'] == 'y':
+#         plein_ecran = True
+#     else:
+#         plein_ecran = False
+# else:
+#     core.quit()
+
+#####################
 # START UP PARAMETERS
+# try:
+#     expInfo = misc.fromFile('../data/lastParams.pickle')
+# except:
+#     expInfo = {
+# #        'ID':'O',
+#         'Subject number':'O_001',
+#         'Booth code':'0',
+#         'Gender':'X',
+#         'Age':0,
+#     }
 
+# sujet = expInfo['Subject number']
+# genre = expInfo['Gender']
+# age = expInfo['Age']
 
-nonce_nouns = ['melnog', 'bloffen', 'neegoul', 'vaneep', 'klamen', 'slegam']
+# datum = data.getDateStr(format="%Y-%m-%d %H:%M")
+
+# # dialogue box
+# dlg = gui.DlgFromDict(expInfo, title='Start parameters')
+# if dlg.OK:    
+#     misc.toFile('../data/lastParams.pickle', expInfo)
+# else:
+#     core.quit()
+
+nonce_nouns = ['melnog', 'bloffen', 'vaneep', 'klamen']
 
 nonce_verbs = ['dof', 'pouz','kass','zeeb']
 
-engdict = {'shoot': 'verb', 'police': 'noun', 'doctor': 'noun',
-           'artist': 'noun', 'point': 'verb', 'punch': 'verb', 'burglar': 'noun',
+engdict = {'shoot': 'verb', 'artist': 'noun', 'point': 'verb', 'punch': 'verb', 'burglar': 'noun',
            'kick': 'verb', 'clown':'noun','boxer':'noun'}
 
 
@@ -1245,6 +1337,19 @@ nounTestingCols = [
 ]
 ntestingDf = pd.DataFrame(columns=nounTestingCols)
 
+nounTypingFileName = '../data/nounTyping/{}.csv'.format(sujet)
+nounTypingCols = [
+    'suj',
+    'trial',
+    'correct_noun',
+    'response',
+    'image',
+    'correct',
+    'total_correct',
+    'iteration' 
+]
+ntypingDf = pd.DataFrame(columns=nounTypingCols)
+
 sentTestingFileName = '../data/sentTesting/{}.csv'.format(sujet)
 stestingCols = [
     'suj',
@@ -1262,7 +1367,8 @@ stestingCols = [
     'expNAgt',
     'expNPat',
     'responseOrder',
-    'dominantOrder'
+    'dominantOrder',
+    'pre/post'
 ]
 stestingDf = pd.DataFrame(columns=stestingCols)
 
@@ -1303,8 +1409,8 @@ compPromptDf = pd.DataFrame(columns=comptpromptCols)
 ############
 # Instructions/dialogue
 
-hello = u'''Hello, and welcome! You're about to learn part of a new language. There are four parts to this phase. 
-First you'll learn the nouns of this language. 
+hello = u'''Hello, and welcome! You're about to learn part of a new language. There are four parts to the learning phase. 
+First you'll learn the words of this language. 
 Second is a very short test, just to see how much you've learned.
 Third you'll see pictures with sentences in the new language describing them.
 And fourth you'll have the opportunity to type in your own responses to describe scenes in the new language!
@@ -1314,50 +1420,77 @@ For some of these sections you will hear a native speaker say the word or senten
                  Press the spacebar to continue
 '''
 
-between_nouns = u'''Well done! You've completed the first phase! Let's see what you remember. You will see a picture, and then respond by clicking on the button with the correct word.'''
+between_nouns = u'''Well done! You've completed the first phase! Let's see what you remember. You will see a picture, and then respond by clicking on the button with the correct word.
+\n
+\n              Press the spacebar to continue'''
 
-tryagain = u'''That was really good, but let's go over the words one more time'''
+type_nouns = u'''Great! Now it's your turn to type the words!
+\n
+\n              Press the spacebar to continue'''
 
-teststatement = u'''Nice job! Just one more short test and we'll move on to some sentences!'''
+tryagain = u'''That was really good, but let's go over the words one more time.
+\n
+\n              Press the spacebar to continue'''
 
-sentences = u'''Now that you've learned the words, let's try some sentences. In this section you'll be shown a scene and our native speaker will describe it. You're job is to match what you see and the speaker's description to the phrases presented at the bottom of the screen.'''
+teststatement = u'''Nice job! Just one more short test and we'll move on to some sentences!
+\n
+\n              Press the spacebar to continue'''
 
-sentence_test = u'''For this part, you're task is to describe the scene using the nouns you've learned. The appropriate verb will be presented at the bottom of the screen under the image.'''
+sentences = u'''Now that you've learned the words, let's try some sentences. In this section you'll be shown a scene and our native speaker will describe it. You're job is to match what you see and the speaker's description to the phrases presented at the bottom of the screen.
+\n
+\n              Press the spacebar to continue'''
+
+sentence_test = u'''For this part, you're task is to describe the scene using the nouns you've learned. The appropriate verb will be presented at the bottom of the screen under the image.
+\n
+\n              Press the spacebar to continue'''
 
 thanksfornothing = u'''Thank you for participating, please let the experimenter know that you have finished'''
 
-typing_instructions = u'''For the picture below, please type in the two words to describe the action taking place.'''
+typing_instructions = u'''For the picture below, please type in the two words to describe the action taking place.
+\n
+\n              Press return/enter to continue'''
 
-comm_success = u'''Well done! You're partner chose the correct scene!'''
+comm_success = u'''Well done! You're partner chose the correct scene!
+\n
+\n              Press the spacebar to continue'''
 
-comm_failed = u'''Oops, not quite, your partner did not understand your description. This is what they thought you meant:'''
+comm_failed = u'''Oops, not quite, your partner did not understand your description. This is what they thought you meant:
+\n              Press the spacebar to continue'''
 
-right_choice = u'''Good job! You chose the correct scene!'''
+right_choice = u'''Good job! You chose the correct scene!
+\n
+\n             Press the spacebar to continue'''
 
 wrong_choice = u'''Oh no! You did not understand your partner's description. This was the correct scene:
-\n Press the spacebar to continue'''
+\n              Press the spacebar to continue'''
 
 interaction_phase = u'''Congratulations on finishing the testing phase! For this next part you will be using the language you just learned to communicate with a partner. For half of the trials you will be shown a picture and asked to complete the description, which your partner will use to choose the correct scene. For the other half of the trials your task is to choose the correct scene based on your partner's description.
 \nPlease wait while we match you with your partner.'''
 
+last_test = u'''Just one more part to go! This last section is just a short test of your understanding, just like last time, for each scene, your task is to complete the sentence to describe the action.
+\n
+\n              Press the spacebar to continue'''
+
 thankyou_complete = u'''Congratulations! You've reached the end of the experiment! Please let the researcher know that you have finished.'''
+
 ############
 # RUN THE EXPERIMENT
 
 
-#initializeInteract('OSV')
+initializeInteract('OSV')
 
 instructions(hello)
 
-doNounTraining(sujet)
-ntrainingDf.to_csv(nounTrainingFileName, index=None)
+# doNounTraining(sujet)
+# ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
-instructions(between_nouns)
+# instructions(between_nouns)
 
-doNounTesting(sujet)
-ntestingDf.to_csv(nounTestingFileName, index = None)
+# doNounTesting(sujet)
+# ntestingDf.to_csv(nounTestingFileName, index=None)
 
-
+# typeTheNouns(sujet)
+# ntypingDf.to_csv(nounTypingFileName, index=None)
 
 # #doSentTraining('OSV')
 strainingDf.to_csv(sentTrainingFileName, index=None)
