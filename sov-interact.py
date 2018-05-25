@@ -10,7 +10,7 @@ import numpy as np
 ##########
 #Dummy variables, change later
 
-sujet= 'S_001'
+#sujet= 'S_001'
 
 ##########
 # FUNCTIONS
@@ -232,7 +232,6 @@ def makePhrase(words):
 
     return stimulus
 
-
 def doNounTrainingTrial(noun, wrongNoun, engNoun, nTrial):
 
     # wait 500 ms at beginning of trial
@@ -356,9 +355,9 @@ def doNounTraining(sujet, repeat = 0):
             'iteration':repeat
         }
         trial = pd.DataFrame([dico])
-        print 'trial', trial
+        #print 'trial', trial
         ntrainingDf = ntrainingDf.append(trial)
-        print 'update', ntrainingDf
+        #print 'update', ntrainingDf
         #loop += 1
     return
 
@@ -372,10 +371,10 @@ def doNounTestTrial(noun, wrongNoun, engNoun, nTrial):
     buttonTexts = [target, miss]
     # mix up button texts
     random.shuffle(buttonTexts)
-
+    print target
     # create mouse and button objects, display instructions
     mouse, buttons, eng, pic = initializeTrial(
-        displayText= target,
+        displayText= None,
         buttonNames=['A', 'B'],
         buttonTexts=['-----'] * len(buttonTexts),
         pic = engNoun,
@@ -455,8 +454,7 @@ def doNounTesting(sujet, repeat = 0):
             if nounWord != otherNonce:
                 wordsDif = True
 
-        # if otherNonce != nounWord: # Make sure the buttons aren't assigned the same word
-    # do the trial and recover button content
+        # do the trial and recover button content
         response, correct, buttonA, buttonB = doNounTestTrial(nounWord, otherNonce, engNoun, n)
         num_correct += correct
             
@@ -517,7 +515,8 @@ def typeTheNouns(suj, repeat=0):
         trial = pd.DataFrame([dico])
         ntypingDf = ntypingDf.append(trial)
 
-    #checkLearning(num_correct, sujet, repeat) # Check to see if participant got at least 75% correct
+    
+    checkLearning(num_correct, sujet, repeat) # Check to see if participant got at least 75% correct
     return
 
 def checkLearning(numCorrect, suj, repeat):
@@ -556,7 +555,7 @@ def checkLearning(numCorrect, suj, repeat):
         core.wait(t)
         initializeInteract(primOrder)
         instructions(last_test)
-        sentTesting(primOrder)
+        sentTesting(primOrder, test = 'Post')
         instructions(thankyou_complete)
     return
 
@@ -896,7 +895,7 @@ def sentTesting(primOrder,test = 'Pre'):
     
     random.shuffle(sentencepics)
     #i = 0
-    for i in range(60):
+    for i in range(30):
 
         pic, engAgt, engVerb, engPat = sentTrials(i)
         agent = noncedict[engAgt]      # Target nonce agent
@@ -910,9 +909,9 @@ def sentTesting(primOrder,test = 'Pre'):
         # Get word order used by participant and what words they used in the trial
         
         if wordOrd == primOrder:
-            domOrder = 0
-        else:
             domOrder = 1
+        else:
+            domOrder = 0
         dico = {
             'suj':sujet,
             'trial':i,
@@ -1015,7 +1014,6 @@ def computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pi
     and strict minority word order'''
 
     success = 0
-
     if nAgt == noncedict[engAgt] and nPat == noncedict[engPat]: # Correct if words and order match
         if wordOrd == computerOrder:
             success += 1
@@ -1026,7 +1024,17 @@ def computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pi
             feedbackDisplay(comm_failed, pic)
     else:
         success += 0
-        if wordOrd == computerOrder:
+        if wordOrd == 'NA':
+            if engVerb == 'punch':
+                pic = random.choice(punchlst)
+            elif engVerb == 'kick':
+                pic = random.choice(kicklst)
+            elif engVerb == 'shoot':
+                pic = random.choice(shootlst)
+            else:
+                pic = random.choice(pointlst)
+            feedbackDisplay(comm_failed,pic)
+        elif wordOrd == computerOrder:
             compAgt = reverseNDict[nAgt]
             compPat = reverseNDict[nPat]
             pic = compAgt+'_'+engVerb+'_'+compPat
@@ -1198,54 +1206,41 @@ def initializeInteract(primOrder):
 
     for i in range(48):
         pic, engAgt, engVerb, engPat = sentTrials(i)
-        # if i%2 == 0:
-        #     # Run trial with participant as director
-        #     participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
-        # else:
-            # Run trial with computer as director
-        computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i)
+        if i%2 == 0:
+             # Run trial with participant as director
+            participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
+        else:
+            #Run trial with computer as director
+            computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i)
         i += 1
     return
 
 
-################
-# RUN PARAMETERS
+####################
+#START UP PARAMETERS
+try:
+    expInfo = misc.fromFile('../data/lastParams.pickle')
+except:
+    expInfo = {
+        'ID':'O',
+        'Subject number':'001',
+        'Booth code':'0',
+        'Gender':'X',
+        'Age':0,
+    }
 
-# pec = {'Full screen':'y'}
-# dlg = gui.DlgFromDict(pec, title=u'Démarrage')
-# if dlg.OK:
-#     if pec['Full screen'] == 'y':
-#         plein_ecran = True
-#     else:
-#         plein_ecran = False
-# else:
-#     core.quit()
+sujet = expInfo['ID']+expInfo['Booth code']+expInfo['Subject number']
+genre = expInfo['Gender']
+age = expInfo['Age']
 
-#####################
-# START UP PARAMETERS
-# try:
-#     expInfo = misc.fromFile('../data/lastParams.pickle')
-# except:
-#     expInfo = {
-# #        'ID':'O',
-#         'Subject number':'O_001',
-#         'Booth code':'0',
-#         'Gender':'X',
-#         'Age':0,
-#     }
+datum = data.getDateStr(format="%Y-%m-%d %H:%M")
 
-# sujet = expInfo['Subject number']
-# genre = expInfo['Gender']
-# age = expInfo['Age']
-
-# datum = data.getDateStr(format="%Y-%m-%d %H:%M")
-
-# # dialogue box
-# dlg = gui.DlgFromDict(expInfo, title='Start parameters')
-# if dlg.OK:    
-#     misc.toFile('../data/lastParams.pickle', expInfo)
-# else:
-#     core.quit()
+# dialogue box
+dlg = gui.DlgFromDict(expInfo, title='Start parameters')
+if dlg.OK:    
+    misc.toFile('../data/lastParams.pickle', expInfo)
+else:
+    core.quit()
 
 nonce_nouns = ['melnog', 'bloffen', 'vaneep', 'klamen']
 
@@ -1432,7 +1427,7 @@ tryagain = u'''That was really good, but let's go over the words one more time.
 \n
 \n              Press the spacebar to continue'''
 
-teststatement = u'''Nice job! Just one more short test and we'll move on to some sentences!
+teststatement = u'''Nice job! Next you're going to see pictures of the words again and your job is to click on the button with the right word.
 \n
 \n              Press the spacebar to continue'''
 
@@ -1459,7 +1454,7 @@ comm_failed = u'''Oops, not quite, your partner did not understand your descript
 
 right_choice = u'''Good job! You chose the correct scene!
 \n
-\n             Press the spacebar to continue'''
+\n           Press the spacebar to continue'''
 
 wrong_choice = u'''Oh no! You did not understand your partner's description. This was the correct scene:
 \n              Press the spacebar to continue'''
@@ -1477,25 +1472,24 @@ thankyou_complete = u'''Congratulations! You've reached the end of the experimen
 # RUN THE EXPERIMENT
 
 
-initializeInteract('OSV')
+#initializeInteract('OSV')
 
 instructions(hello)
 
-# doNounTraining(sujet)
-# ntrainingDf.to_csv(nounTrainingFileName, index=None)
+doNounTraining(sujet)
+ntrainingDf.to_csv(nounTrainingFileName, index=None)
 
-# instructions(between_nouns)
+instructions(between_nouns)
 
-# doNounTesting(sujet)
-# ntestingDf.to_csv(nounTestingFileName, index=None)
+doNounTesting(sujet)
+ntestingDf.to_csv(nounTestingFileName, index=None)
 
-# typeTheNouns(sujet)
-# ntypingDf.to_csv(nounTypingFileName, index=None)
+instructions(type_nouns)
+typeTheNouns(sujet)
+ntypingDf.to_csv(nounTypingFileName, index=None)
 
 # #doSentTraining('OSV')
 strainingDf.to_csv(sentTrainingFileName, index=None)
-
-
 
 # #sentTesting('OSV')
 stestingDf.to_csv(sentTestingFileName, index=None)
