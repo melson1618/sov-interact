@@ -1229,7 +1229,10 @@ except:
         'Age':0,
     }
 
-sujet = expInfo['ID']+expInfo['Booth code']+expInfo['Subject number']
+sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+
+print type(sujet), sujet
+
 genre = expInfo['Gender']
 age = expInfo['Age']
 
