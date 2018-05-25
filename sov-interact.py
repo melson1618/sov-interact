@@ -1220,6 +1220,7 @@ def initializeInteract(primOrder):
 #START UP PARAMETERS
 try:
     expInfo = misc.fromFile('../data/lastParams.pickle')
+    print "I found previous data."
 except:
     expInfo = {
         'ID':'O',
@@ -1228,8 +1229,7 @@ except:
         'Gender':'X',
         'Age':0,
     }
-
-sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+    print "I did not find previous data."
 
 print type(sujet), sujet
 
@@ -1245,6 +1245,8 @@ if dlg.OK:
 else:
     core.quit()
 
+sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+    
 nonce_nouns = ['melnog', 'bloffen', 'vaneep', 'klamen']
 
 nonce_verbs = ['dof', 'pouz','kass','zeeb']
