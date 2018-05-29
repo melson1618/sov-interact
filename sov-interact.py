@@ -33,6 +33,13 @@ def instructions(x):
     win.flip()
     return
 
+def launchTheParticipation(x, t):
+    win.flip()
+    visual.TextStim(win, text=x, color="black", wrapWidth=700).draw()
+    win.flip()
+    core.wait(t)
+    win.flip()
+    return
 
 def findStimImage():
     '''Gather the images for the single nouns and sentences into lists'''
@@ -550,9 +557,8 @@ def checkLearning(numCorrect, suj, repeat):
         doSentTraining(primOrder)
         instructions(sentence_test)
         sentTesting(primOrder)
-        instructions(interaction_phase)
         t = random.randint(1,5)
-        core.wait(t)
+        launchTheParticipation(interaction_phase, t)
         initializeInteract(primOrder)
         instructions(last_test)
         sentTesting(primOrder, test = 'Post')
@@ -1231,6 +1237,8 @@ except:
     }
     print "I did not find previous data."
 
+sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+
 print type(sujet), sujet
 
 genre = expInfo['Gender']
@@ -1238,14 +1246,14 @@ age = expInfo['Age']
 
 datum = data.getDateStr(format="%Y-%m-%d %H:%M")
 
-# dialogue box
+#dialogue box
 dlg = gui.DlgFromDict(expInfo, title='Start parameters')
 if dlg.OK:    
     misc.toFile('../data/lastParams.pickle', expInfo)
 else:
     core.quit()
 
-sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+#sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
     
 nonce_nouns = ['melnog', 'bloffen', 'vaneep', 'klamen']
 
@@ -1409,13 +1417,10 @@ compPromptDf = pd.DataFrame(columns=comptpromptCols)
 ############
 # Instructions/dialogue
 
-hello = u'''Hello, and welcome! You're about to learn part of a new language. There are four parts to the learning phase. 
-First you'll learn the words of this language. 
-Second is a very short test, just to see how much you've learned.
-Third you'll see pictures with sentences in the new language describing them.
-And fourth you'll have the opportunity to type in your own responses to describe scenes in the new language!
-
-For some of these sections you will hear a native speaker say the word or sentence you're learning. In these sections, you're job is to match the word and image presented to the correct button on the bottom of the screen.
+hello = u'''Hello, and welcome! You're about to learn part of a new language. Please read the all of the directions carefully.
+First you're going to learn the words of the new language. For some of this part you will hear a native speaker (Sasha) say the word or sentence you're learning. After you hear Sasha, you will see two buttons on the screen with words or sentences in them. 
+You're job is to match the word and image presented to the correct button on the bottom of the screen.
+Second you're going to be assigned a partner and asked to use Sasha's language to communicate.
 \n                      Let's get started!
                  Press the spacebar to continue
 '''
@@ -1476,7 +1481,10 @@ thankyou_complete = u'''Congratulations! You've reached the end of the experimen
 ############
 # RUN THE EXPERIMENT
 
-
+#sentTesting('OSV')
+#t = random.randint(1,5)
+#launchTheParticipation(interaction_phase, t)
+#initializeInteract('OSV')
 #initializeInteract('OSV')
 
 instructions(hello)
