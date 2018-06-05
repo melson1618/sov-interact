@@ -332,6 +332,7 @@ def doNounTraining(sujet, repeat = 0):
     trainingNouns = trainingNouns[0] + trainingNouns[1] + trainingNouns[2]+trainingNouns[3]+trainingNouns[4]+trainingNouns[5]
 
     i = 0 # because we need to repeat incorrect trials, must have own counter
+    n = 0 # trial counter
     while i < 24: # Iterate through entire noun list once
         engNoun = trainingNouns[i]
         nounWord = noncedict[engNoun]
@@ -342,17 +343,18 @@ def doNounTraining(sujet, repeat = 0):
             response, correct, buttonA, buttonB = doNounTrainingTrial(nounWord, otherNonce, engNoun, i)
         else:
             continue
-
+        n += 1
     # if trial correct, move on, else repeat
         if correct == 1:
             i += 1
             
         else:
             continue
-
+        
         dico = {
             'suj':sujet,
-            'trial':i,
+            'trial':n,
+            'successful trial': i,
             'targetNoun':nounWord,
             'engNoun':engNoun,
             'buttonA':buttonA,
@@ -499,10 +501,13 @@ def typeTheNouns(suj, repeat=0):
         nounWord = noncedict[engNoun]
         print nounWord
         imagePath = pathToImages+engNoun+'.jpg'
-        response = typingTrial(win, imagePath)
+        response = typingTrial(win, imagePath, noun_typing_instructions)
         correctNoun = processResponses(response) 
         #print 'This is correctNoun: ', correctNoun
-        if correctNoun[0] == nounWord:
+        if len(correctNoun) < 1 :
+            correct = 0
+            num_correct += 0
+        elif correctNoun[0] == nounWord:
             correct = 1
             num_correct += 1
         else:
@@ -536,32 +541,46 @@ def checkLearning(numCorrect, suj, repeat):
         else:
             instructions(sentences)
             doSentTraining(primOrder)
+            strainingDf.to_csv(sentTrainingFileName, index=None)
             instructions(sentence_test)
             sentTesting(primOrder)
-            instructions(interaction_phase)
-            t = random.randint(1,5)
-            core.wait(t)
+            stestingDf.to_csv(sentTestingFileName, index=None)
+            t = random.randint(60,120)
+            launchTheParticipation(interaction_phase, t)
             initializeInteract(primOrder)
+            partPromptDf.to_csv(partPromptFileName, index=None)
+            compPromptDf.to_csv(compPromptFileName, index=None)
+            instructions(last_test)
+            sentTesting(primOrder, test = 'Post')
+            stestingDf.to_csv(sentTestingFileName, index=None)
             instructions(thankyou_complete)
     elif numCorrect < 9: # If they got less than 75% correct, repeat training
         instructions(tryagain)
         doNounTraining(suj, repeat = 1)
+        ntrainingDf.to_csv(nounTrainingFileName, index=None)
         instructions(teststatement)
         doNounTesting(suj, repeat = 1)
+        ntestingDf.to_csv(nounTestingFileName, index=None)
         instructions(type_nouns)
         typeTheNouns(suj, repeat=1)
+        ntypingDf.to_csv(nounTypingFileName, index=None)
 
     else:
         # If participant passes nountesting, initialize sentTraining and then testing, base testing on order assigned in ID
         instructions(sentences)
         doSentTraining(primOrder)
+        strainingDf.to_csv(sentTrainingFileName, index=None)
         instructions(sentence_test)
         sentTesting(primOrder)
-        t = random.randint(1,5)
+        stestingDf.to_csv(sentTestingFileName, index=None)
+        t = random.randint(60,120)
         launchTheParticipation(interaction_phase, t)
         initializeInteract(primOrder)
+        partPromptDf.to_csv(partPromptFileName, index=None)
+        compPromptDf.to_csv(compPromptFileName, index=None)
         instructions(last_test)
         sentTesting(primOrder, test = 'Post')
+        stestingDf.to_csv(sentTestingFileName, index=None)
         instructions(thankyou_complete)
     return
 
@@ -647,12 +666,12 @@ def doSentTrainingTrial(agtWord, vrbWord, objWord, sentence, order, nTrial):
     consBis.setAutoDraw(False)
     pic.setAutoDraw(False)
     
-    print order 
+    #print order 
     return response, correct, buttonTexts[0], buttonTexts[1]
 
 def sentTrials(i):
 
-    random.shuffle(sentencepics)
+    #random.shuffle(sentencepics)
     name = sentencepics[i]
     pic, file = name.split('.')
     sentencelist = pic.split('_')
@@ -668,12 +687,13 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
 
     # because we need to repeat incorrect trials, must have own counter
     i = 0
+    n = 0 # trial counter
     if primOrder == 'OSV':
         orderlist = ['OSV']*42 + ['SOV']*18
     else:
         orderlist = ['OSV']*18 + ['SOV']*42
     random.shuffle(orderlist)
-
+    random.shuffle(sentencepics)
     while i < 60:
         pic, engAgt, engVerb, engPat = sentTrials(i)
         agent = noncedict[engAgt]
@@ -682,16 +702,23 @@ def doSentTraining(primOrder): # Specify the dominant word order for the partici
         order = orderlist[i] #random.choice(orderlist)
         
         response, correct, buttonA, buttonB = doSentTrainingTrial(agent, verb, patient, pic, order, i)
-        
+
         if correct == 1:
             i += 1
         else:
             continue
-            
+        n += 1
+        if i == 30:
+            temppic = random.choice(breakimages)
+            file = temppic.split('.')
+            pic = file[0]
+            feedbackDisplay(a_wee_break, 0,pathToRestImage, pic)
+
         dico = {
             'suj':sujet,
-            'trial':i,
-            'order':primOrder,
+            'successful trial': i,
+            'trial':n,
+            'order':order,
             'agent':engAgt,
             'verb':engVerb,
             'patient':engPat,
@@ -772,10 +799,10 @@ def spellcheckWords(str):
     return correctedWords
 
 
-def typingTrial(win,image_path,verb=None):
+def typingTrial(win,image_path, instruct, verb=None):
     text=""
     shifton=0 # allows caps and ?'s etc
-    instructions = visual.TextStim(win, text=typing_instructions,
+    instructions = visual.TextStim(win, text=instruct,
         color="Black",units='norm',pos=[0,0.75], wrapWidth = 1.5, height=0.05)
     #you do not need the above line if you do not have any text displayed along with the image
     imageStim=visual.ImageStim(win, image=image_path, units='norm',pos=[0,0],autoLog=True)
@@ -909,7 +936,7 @@ def sentTesting(primOrder,test = 'Pre'):
         patient = noncedict[engPat]     # Target nonce patient
         print agent, patient
         imagePath = pathToImages+pic+'.jpg'
-        responses = typingTrial(win, imagePath, verb) # Initialize typing trial
+        responses = typingTrial(win, imagePath, typing_instructions,verb) # Initialize typing trial
         correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
         respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
         # Get word order used by participant and what words they used in the trial
@@ -934,7 +961,7 @@ def sentTesting(primOrder,test = 'Pre'):
             'expNAgt':agent, 
             'expNPat':patient, 
             'responseOrder':wordOrd, # Word order used by participant
-            'dominantOrder':domOrder,
+            'majOrder':domOrder,
             'pre/post':test
         }
         trial = pd.DataFrame([dico])
@@ -955,16 +982,16 @@ def participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
     patient = noncedict[engPat]     # Target nonce patient 
     imagePath = pathToImages+pic+'.jpg'
     print agent, patient 
-    responses = typingTrial(win, imagePath, verb)
+    responses = typingTrial(win, imagePath, typing_instructions, verb)
     correctNouns = processResponses(responses)          # Pass str from typing to be cleaned of non-alpha chars
     respAgt, respPat, nAgt, nPat, wordOrd = whichWords(correctNouns, agent, patient) 
     # Get word order used by participant and what words they used in the trial
     
     successCount, compGuess = computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pic)
     if wordOrd == primOrder:
-        domOrder = 0
-    else:
         domOrder = 1
+    else:
+        domOrder = 0
 
     dico = {
         'suj':sujet,
@@ -982,7 +1009,7 @@ def participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
         'expNAgt':agent, # Intended nonce agent
         'expNPat':patient, # Intended nonce patient
         'responseOrder':wordOrd, # Word order used by participant
-        'dominantOrder':domOrder,
+        'majOrder':domOrder,
         'correct':successCount,
         'partner guess':compGuess
     }
@@ -991,17 +1018,17 @@ def participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
 
     return
 
-def feedbackDisplay(x, pic = None):
+def feedbackDisplay(x, t, image_path,pic = None):
     '''Give participant feedback based on success or failure of computer to recognize the correct image'''
     win.flip()
-    t = random.randint(1,5) # Wait between 1 and 5 seconds before continuing and showing the feedback
+     # Wait between 1 and 5 seconds before continuing and showing the feedback
     core.wait(t)
-    visual.TextStim(win, text=x, color="black", wrapWidth=700, pos = (0,200)).draw()
+    visual.TextStim(win, text=x, color="black", wrapWidth=700, pos = (0,300)).draw()
     #win.flip()
     if pic != None:
         picObj = visual.ImageStim(
             win,
-            image=pathToImages+pic+'.jpg',
+            image=image_path+pic+'.jpg',
             pos = (0, 0)
         )
         picObj.setAutoDraw(True)
@@ -1020,14 +1047,15 @@ def computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pi
     and strict minority word order'''
 
     success = 0
+    t = random.randint(1,5)
     if nAgt == noncedict[engAgt] and nPat == noncedict[engPat]: # Correct if words and order match
         if wordOrd == computerOrder:
             success += 1
-            feedbackDisplay(comm_success)
+            feedbackDisplay(comm_success, t, pathToImages)
         else:                                               # If words match, but order is incorrect
             success += 0
             pic = engPat+'_'+engVerb+'_'+engAgt
-            feedbackDisplay(comm_failed, pic)
+            feedbackDisplay(comm_failed, t, pathToImages, pic)
     else:
         success += 0
         if wordOrd == 'NA':
@@ -1039,17 +1067,17 @@ def computerResp(computerOrder, engAgt, engVerb, engPat, nAgt, nPat, wordOrd, pi
                 pic = random.choice(shootlst)
             else:
                 pic = random.choice(pointlst)
-            feedbackDisplay(comm_failed,pic)
+            feedbackDisplay(comm_failed,t,pathToImages,pic)
         elif wordOrd == computerOrder:
             compAgt = reverseNDict[nAgt]
             compPat = reverseNDict[nPat]
             pic = compAgt+'_'+engVerb+'_'+compPat
-            feedbackDisplay(comm_failed, pic)
+            feedbackDisplay(comm_failed, t, pathToImages, pic)
         else:
             compAgt = reverseNDict[nPat]
             compPat = reverseNDict[nAgt]
             pic = compAgt+'_'+engVerb+'_'+compPat
-            feedbackDisplay(comm_failed, pic)
+            feedbackDisplay(comm_failed, t, pathToImages, pic)
     return success, pic 
 
 def theOtherOnes(trialpics, engAgt, engPat):
@@ -1094,7 +1122,7 @@ def cpImages(engAgt, engPat, engVerb, pic):
     return trialImages              # List of 4 pics for trial
 
 
-def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
+def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, computerOrder, i):
 
     global compPromptDf
 
@@ -1176,7 +1204,14 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
 
     partGuess = visStims[responseImage]
     print partGuess, responseImage
-    successCount = participantFeedback(partGuess, pic) # Check if participant response is correct
+    correct = participantFeedback(partGuess, pic) # Check if participant response is correct
+
+    if correct == 1:
+        majOrder = 0
+        wordOrder = computerOrder
+    else:
+        majOrder = 1
+        wordOrder = primOrder
 
     dico = {
         'suj':sujet,
@@ -1184,7 +1219,9 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
         'prompt':promptSent,
         'image':pic,
         'part guess':partGuess,
-        'correct':successCount
+        'majOrder':majOrder,
+        'responseOrder':wordOrder,
+        'correct':correct
     }
     trial = pd.DataFrame([dico])
     compPromptDf = compPromptDf.append(trial)
@@ -1194,12 +1231,13 @@ def computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i):
 def participantFeedback(partGuess, pic):
 
     success = 0
+    
     if partGuess == pic:
         success += 1
-        feedbackDisplay(right_choice)
+        feedbackDisplay(right_choice,0,pathToImages)
     else:
         success += 0
-        feedbackDisplay(wrong_choice, pic)
+        feedbackDisplay(wrong_choice,0, pathToImages, pic)
     return success 
 
 def initializeInteract(primOrder):
@@ -1211,13 +1249,14 @@ def initializeInteract(primOrder):
         computerOrder = 'OSV'
 
     for i in range(48):
+        random.shuffle(sentencepics)
         pic, engAgt, engVerb, engPat = sentTrials(i)
         if i%2 == 0:
              # Run trial with participant as director
             participantPrompt(pic, engAgt, engVerb, engPat, primOrder, i, computerOrder)
         else:
             #Run trial with computer as director
-            computerPrompt(pic, engAgt, engVerb, engPat, primOrder, i)
+            computerPrompt(pic, engAgt, engVerb, engPat, primOrder, computerOrder, i)
         i += 1
     return
 
@@ -1237,9 +1276,9 @@ except:
     }
     print "I did not find previous data."
 
-sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+#sujet = '{}{}{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'], expInfo['Gender'],expInfo['Age'])
 
-print type(sujet), sujet
+#print type(sujet), sujet
 
 genre = expInfo['Gender']
 age = expInfo['Age']
@@ -1253,7 +1292,7 @@ if dlg.OK:
 else:
     core.quit()
 
-#sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
+sujet = '{}{}{}'.format(expInfo['ID'], expInfo['Booth code'], expInfo['Subject number'])
     
 nonce_nouns = ['melnog', 'bloffen', 'vaneep', 'klamen']
 
@@ -1265,14 +1304,20 @@ engdict = {'shoot': 'verb', 'artist': 'noun', 'point': 'verb', 'punch': 'verb', 
 
 p = re.compile('.*\.jpg')
 pathToImages = ('../stimuli/images/')
-
+pathToRestImage = ('../stimuli/restimages/')
 
 allFiles = os.listdir(pathToImages) # list all files in a certain directory
+otherFiles = os.listdir(pathToRestImage)
 
 images = [] # create a list of images in the images folder (automatically!)
 for f in allFiles:
     if p.match(f):
         images.append(f)
+
+breakimages = []
+for o in otherFiles:
+    if p.match(o):
+        breakimages.append(o)
 
 primOrder = getPartOrder(sujet)
 sentencepics, nounpics = findStimImage()
@@ -1306,6 +1351,7 @@ nounTrainingFileName = '../data/nounTraining/{}.csv'.format(sujet)
 ntrainingCols = [
     'suj',
     'trial',
+    'successful trial',
     'targetNoun',
     'engNoun',
     'buttonA',
@@ -1320,6 +1366,7 @@ sentTrainingFileName = '../data/sentTraining/{}.csv'.format(sujet)
 strainingCols = [
     'suj',
     'trial',
+    'successful trial',
     'order',
     'agent',
     'verb',
@@ -1330,7 +1377,6 @@ strainingCols = [
     'correct'
 ]
 strainingDf = pd.DataFrame(columns=strainingCols)
-
 
 nounTestingFileName = '../data/nounTesting/{}.csv'.format(sujet)
 nounTestingCols = [
@@ -1375,7 +1421,7 @@ stestingCols = [
     'expNAgt',
     'expNPat',
     'responseOrder',
-    'dominantOrder',
+    'majOrder',
     'pre/post'
 ]
 stestingDf = pd.DataFrame(columns=stestingCols)
@@ -1397,7 +1443,7 @@ partpromtCols = [
     'expNAgt', # Intended nonce agent
     'expNPat', # Intended nonce patient
     'responseOrder', # Word order used by participant
-    'dominantOrder',
+    'majOrder',
     'correct',
     'partner guess'
 ]
@@ -1410,6 +1456,8 @@ comptpromptCols = [
     'prompt',
     'image',
     'part guess',
+    'majOrder',
+    'responseOrder',
     'correct'
 ]
 compPromptDf = pd.DataFrame(columns=comptpromptCols)
@@ -1417,10 +1465,10 @@ compPromptDf = pd.DataFrame(columns=comptpromptCols)
 ############
 # Instructions/dialogue
 
-hello = u'''Hello, and welcome! You're about to learn part of a new language. Please read the all of the directions carefully.
-First you're going to learn the words of the new language. For some of this part you will hear a native speaker (Sasha) say the word or sentence you're learning. After you hear Sasha, you will see two buttons on the screen with words or sentences in them. 
-You're job is to match the word and image presented to the correct button on the bottom of the screen.
-Second you're going to be assigned a partner and asked to use Sasha's language to communicate.
+hello = u'''Hello, and welcome! You're about to learn part of a new language. Please read all of the directions carefully.
+\nFirst you're going to learn the words of the new language. For some of this part you will hear a native speaker (Sasha) say the word or sentence you're learning. After you hear Sasha, you will see two buttons on the screen with words or sentences in them. 
+\nYou're job is to match the word and image presented to the correct button on the bottom of the screen.
+\nSecond you're going to be assigned a partner and asked to use Sasha's language to communicate.
 \n                      Let's get started!
                  Press the spacebar to continue
 '''
@@ -1445,11 +1493,17 @@ sentences = u'''Now that you've learned the words, let's try some sentences. In 
 \n
 \n              Press the spacebar to continue'''
 
-sentence_test = u'''For this part, you're task is to describe the scene using the nouns you've learned. The appropriate verb will be presented at the bottom of the screen under the image.
+a_wee_break = u'''Great job! You're half way through learning the sentences, time for a break! Please press the spacebar when you are done looking at this cat.'''
+
+sentence_test = u'''For this part, your task is to describe the scene using the nouns you've learned. The appropriate verb will be presented at the bottom of the screen under the image.
 \n
 \n              Press the spacebar to continue'''
 
 thanksfornothing = u'''Thank you for participating, please let the experimenter know that you have finished'''
+
+noun_typing_instructions = u'''Please type in the word that describes the picture.
+\n
+\n              Press return/enter to continue'''
 
 typing_instructions = u'''For the picture below, please type in the two words to describe the action taking place.
 \n
@@ -1481,33 +1535,19 @@ thankyou_complete = u'''Congratulations! You've reached the end of the experimen
 ############
 # RUN THE EXPERIMENT
 
-#sentTesting('OSV')
-#t = random.randint(1,5)
-#launchTheParticipation(interaction_phase, t)
-#initializeInteract('OSV')
-#initializeInteract('OSV')
 
 instructions(hello)
 
 doNounTraining(sujet)
 ntrainingDf.to_csv(nounTrainingFileName, index=None)
-
 instructions(between_nouns)
-
 doNounTesting(sujet)
 ntestingDf.to_csv(nounTestingFileName, index=None)
-
 instructions(type_nouns)
 typeTheNouns(sujet)
 ntypingDf.to_csv(nounTypingFileName, index=None)
-
-# #doSentTraining('OSV')
 strainingDf.to_csv(sentTrainingFileName, index=None)
-
-# #sentTesting('OSV')
 stestingDf.to_csv(sentTestingFileName, index=None)
-
 partPromptDf.to_csv(partPromptFileName, index=None)
-
 compPromptDf.to_csv(compPromptFileName, index=None)
 core.quit()
